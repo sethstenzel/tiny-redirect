@@ -1,43 +1,50 @@
-redirect_table = {
-    "rt":"10.0.1.1",
-    "grafana":"raijin:3000",
-    "raijin":"raijin:2500",
-    "proxmox":"https://10.0.1.16:8006/"
-}
-
+from data import load_data
 from bottle import Bottle, request, redirect
 from threading import Thread
 import signal, time, os
 
 app = Bottle()
 
-@app.route('/')
-def index():
-    table = ""
-    for k, v in redirect_table.items():
-        table += f"[{k} &rarr; {v}]<br>"
-    return table
 
-@app.route('/<new_path:path>')
+@app.route("/")
+def index():
+    redirect_table = ""
+    if app.app_db_data["redirects"]:
+        for k, v in app.app_db_data["redirects"].items():
+            redirect_table += f"[{k} &rarr; {v}]<br>"
+        return redirect_table
+    return "no redirects found :("
+
+
+@app.route("/<new_path:path>")
 def base(new_path):
-    print(new_path)
     rkey = request.url.split("//")[1].split("/")[1]
-    redirection = redirect_table.get(rkey)
+    redirection = app.app_db_data["redirects"].get(rkey)
     if not redirection:
-        return f"\"{rkey}\" not found in redirect table"
+        return f'"{rkey}" not found in redirect table'
     if not "://" in redirection:
         redirection = "http://" + redirection
     redirect(redirection, 303)
 
-@app.route('/shutdown')
+
+@app.route("/shutdown")
 def shutdown():
     Thread(target=shutdown_server).start()
-    return 'Stopping Server...'
+    return "Stopping Server..."
+
 
 def shutdown_server():
     time.sleep(3)
     pid = os.getpid()
     os.kill(pid, signal.SIGINT)
 
-app.run(host='0.0.0.0', port=80)
 
+if __name__ == "__main__":
+    app.app_db_data = load_data()
+    app.run(
+        host=app.app_db_data["settings"]["hostname"],
+        port=app.app_db_data["settings"]["port"],
+        debug=eval(app.app_db_data["settings"]["bottle-debug"]),
+        reloader=eval(app.app_db_data["settings"]["bottle-reloader"]),
+        server=app.app_db_data["settings"]["bottle-engine"],
+    )
