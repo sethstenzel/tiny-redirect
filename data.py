@@ -43,6 +43,56 @@ def load_data():
     return data
 
 
+def add_alias(alias, redirect):
+    connection = sqlite3.connect("data.db")
+    add_sql = (
+        f'INSERT INTO redirects ("alias", "redirect") VALUES ("{alias}", "{redirect}");'
+    )
+    try:
+        cursor = connection.cursor()
+        cursor.execute(add_sql)
+        connection.commit()
+    except sqlite3.OperationalError as error:
+        connection.rollback()
+        raise (error)
+    finally:
+        connection.close()
+
+
+def delete_alias(alias):
+    connection = sqlite3.connect("data.db")
+    deletion_sql = f'DELETE FROM redirects WHERE "alias" == "{alias}";'
+    try:
+        cursor = connection.cursor()
+        cursor.execute(deletion_sql)
+        connection.commit()
+    except sqlite3.OperationalError as error:
+        connection.rollback()
+        raise (error)
+    finally:
+        connection.close()
+
+
+def update_setting(setting, current_value, new_value):
+    connection = sqlite3.connect("data.db")
+    update_sql = f'UPDATE settings SET "{setting}" = "{new_value}" WHERE "{setting}" == "{current_value}";'
+    try:
+        cursor = connection.cursor()
+        cursor.execute(update_sql)
+        connection.commit()
+    except sqlite3.OperationalError as error:
+        connection.rollback()
+        raise (error)
+    finally:
+        connection.close()
+
+
 if __name__ == "__main__":
+    from pprint import pprint as print
+
     data = load_data()
     print(data)
+
+    update_settings("hostname", "0.0.0.0", "0.0.0.0")
+    data = load_data()
+    print(data["settings"])
