@@ -3,6 +3,7 @@ env/
 __pycache__/
 
 *.py[cod]
+*.psd
 
 build/
 dist/

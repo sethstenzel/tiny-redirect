@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  % include("header")
+  <body>
+    % include("navmenu")
+    <div class="d-flex mx-auto" style="width: 450px;">       
+            <div class="mx-auto list-group mt-5">
+            <h2 id="shutdown_text">Shutting Down App Server</h2>
+            <h1 class="mx-auto" id="timer"">3 secs</h1>
+            </div>       
+      
+    </div>
+    % include("footer")
+    % include("js")
+    <script>
+        var count=3;
+        var counter=setInterval(timer, 1000); //1000 will  run it every 1 second
+        function timer(){
+            count=count-1;
+            if (count <= 0){
+                clearInterval(counter);
+                document.getElementById("timer").innerHTML=`<br><img src="./img/plugin-red.svg" style="width:250px;">`;
+                return;
+            }
+            document.getElementById("timer").innerHTML=count + " secs";
+        }
+    </script>
+  </body>
+</html>
