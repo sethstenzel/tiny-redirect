@@ -40,7 +40,7 @@ def index():
             "redirects": app.app_db_data["redirects"].items(),
         }
         return template("root", page_data)
-    return redirect("/", 303)
+    return redirect("/redirects", 303)
 
 
 @app.route("/about")
@@ -159,7 +159,7 @@ def redirects():
             "redirects": app.app_db_data["redirects"].items(),
         }
         return template("redirects", page_data)
-    return redirect("/", 303)
+    return redirect("/add?alias=ex&redirect=https://example.com/", 303)
 
 
 @app.route("/shutdown")
