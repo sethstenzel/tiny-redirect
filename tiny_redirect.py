@@ -91,14 +91,61 @@ def settings():
         "current_port": app.app_db_data["settings"]["port"],
         "current_debug": eval(app.app_db_data["settings"]["bottle-debug"]),
         "current_reloader": eval(app.app_db_data["settings"]["bottle-reloader"]),
-        "current_console": app.app_db_data["settings"]["hide-console"],
+        "current_console": eval(app.app_db_data["settings"]["hide-console"]),
     }
     return template("settings", page_data)
 
 
 @app.route("/update_settings")
 def update_setting():
-    print(request)
+    update_hostname = request.query.hostname
+    if update_hostname != "":
+        data.update_setting(
+            "hostname", app.app_db_data["settings"]["hostname"], update_hostname
+        )
+    update_port = request.query.port
+    if update_port != "":
+        data.update_setting("port", app.app_db_data["settings"]["port"], update_port)
+
+    update_debug = request.query.debug
+    if update_debug != "":
+        data.update_setting(
+            "bottle-debug", app.app_db_data["settings"]["bottle-debug"], update_debug
+        )
+    else:
+        data.update_setting(
+            "bottle-debug",
+            app.app_db_data["settings"]["bottle-debug"],
+            "False",
+        )
+
+    update_reloader = request.query.reloader
+    if update_reloader != "":
+
+        data.update_setting(
+            "bottle-reloader",
+            app.app_db_data["settings"]["bottle-reloader"],
+            update_reloader,
+        )
+    else:
+        data.update_setting(
+            "bottle-reloader",
+            app.app_db_data["settings"]["bottle-reloader"],
+            "False",
+        )
+
+    update_console = request.query.console
+    if update_console != "":
+        data.update_setting(
+            "hide-console", app.app_db_data["settings"]["hide-console"], update_console
+        )
+    else:
+        data.update_setting(
+            "hide-console",
+            app.app_db_data["settings"]["hide-console"],
+            "False",
+        )
+    app.app_db_data = data.load_data()
     return redirect("/settings", 303)
 
 
