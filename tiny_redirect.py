@@ -3,7 +3,7 @@ import data
 from bottle import Bottle, request, redirect, template, static_file, route
 from bottle import route, run, template, static_file
 from threading import Thread
-import signal, time, os
+import signal, time, os, sys
 
 app = Bottle()
 
@@ -81,9 +81,25 @@ def delete_alias():
     redirect("/", 303)
 
 
-@app.route("/update")
+@app.route("/settings")
+def settings():
+    app.app_db_data = data.load_data()
+
+    page_data = {
+        "title": "TinyRedirect - Server Settings",
+        "current_host": app.app_db_data["settings"]["hostname"],
+        "current_port": app.app_db_data["settings"]["port"],
+        "current_debug": eval(app.app_db_data["settings"]["bottle-debug"]),
+        "current_reloader": eval(app.app_db_data["settings"]["bottle-reloader"]),
+        "current_console": app.app_db_data["settings"]["hide-console"],
+    }
+    return template("settings", page_data)
+
+
+@app.route("/update_settings")
 def update_setting():
-    pass
+    print(request)
+    return redirect("/settings", 303)
 
 
 @app.route("/redirects")
@@ -98,17 +114,12 @@ def redirects():
     return redirect("/", 303)
 
 
-@app.route("/settings")
-def settings():
-    pass
-
-
 @app.route("/shutdown")
 def shutdown():
     page_data = {
         "title": "TinyRedirect - Shutdown!",
     }
-    # Thread(target=shutdown_server).start()
+    Thread(target=shutdown_server).start()
     return template("shutdown", page_data)
 
 
@@ -119,11 +130,29 @@ def shutdown_server():
 
 
 if __name__ == "__main__":
-    app.app_db_data = data.load_data()
-    app.run(
-        host=app.app_db_data["settings"]["hostname"],
-        port=app.app_db_data["settings"]["port"],
-        debug=eval(app.app_db_data["settings"]["bottle-debug"]),
-        reloader=eval(app.app_db_data["settings"]["bottle-reloader"]),
-        server=app.app_db_data["settings"]["bottle-engine"],
-    )
+    if len(sys.argv) > 1 and sys.argv[1] == "--defaults":
+        print("Starting Server with Defaults\n\n")
+        print('host="0.0.0.0"')
+        print('port="8888"')
+        app.run(
+            host="0.0.0.0",
+            port="8888",
+            debug=True,
+            reloader=True,
+        )
+    else:
+        app.app_db_data = data.load_data()
+        if eval(app.app_db_data["settings"]["hide-console"]):
+            import win32.lib.win32con as win32con
+            import win32gui
+
+            my_app = win32gui.GetForegroundWindow()
+            win32gui.ShowWindow(my_app, win32con.SW_HIDE)
+
+        app.run(
+            host=app.app_db_data["settings"]["hostname"],
+            port=app.app_db_data["settings"]["port"],
+            debug=eval(app.app_db_data["settings"]["bottle-debug"]),
+            reloader=eval(app.app_db_data["settings"]["bottle-reloader"]),
+            server=app.app_db_data["settings"]["bottle-engine"],
+        )

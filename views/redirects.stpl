@@ -4,7 +4,7 @@
 
 <body>
   % include("navmenu")
-  <div class="d-flex mx-auto" style="width: 450px;">
+  <div class="d-flex mx-auto" style="width: 550px;">
 
     <div class="list-group mt-5">
       <h4>Add New Alias Redirect</h4>
@@ -23,7 +23,7 @@
         </div>
         <div class="form-group">
           <br>
-          <button type="submit" class="btn btn-success">add new alias redirect</button>
+          <button type="submit" class="btn btn-success">Add new alias redirect</button>
         </div>
       </form>
       <br><br><br>

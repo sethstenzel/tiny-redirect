@@ -1,0 +1,64 @@
+<html lang="en">
+% include("header")
+
+<body>
+    % include("navmenu")
+    <div class="d-flex mx-auto" style="width: 550px;">
+        <div class="list-group mt-5">
+            <h4>Modify Server Settings</h4>
+
+<p>{{current_debug}}</p>
+            <form action="/update_settings" method="get">
+
+                <label for="hostname">Server Listen Address:</label>
+                <input type="text" class="form-control" name="hostname" id="hostname" placeholder="{{current_host}}">
+
+                <label for="port">Server Listen Port:</label>
+                <input type="number" class="form-control" name="port" id="port" placeholder="{{current_port}}">
+
+                <input type="checkbox" class="custom-control-input" id="debug" name="debug" value="True"
+                % if current_debug == True:
+                % checked="checked"
+                % else:
+                % checked=""
+                % end
+                {{checked}}>
+                <label class="custom-control-label" for="debug"><strong>Load server in
+                        debug
+                        mode.</strong></label><br>
+
+                <input type="checkbox" class="custom-control-input" id="reloader" name="reloader" value="True"
+                % if current_reloader == True:
+                % checked="checked"
+                % else:
+                % checked=""
+                % end
+                {{checked}}>
+                <label class="custom-control-label" for="reloader"><strong>Reload
+                        server after
+                        source/template changes.</strong></label><br>
+
+                <input type="checkbox" class="custom-control-input" id="console" name="console" value="True"
+                % if current_console == True:
+                % checked="checked"
+                % else:
+                % checked=""
+                % end
+                {{checked}}>
+                <label class="custom-control-label" for="console"><strong>Hide console
+                        after
+                        server start.</strong></label><br><br>
+
+                <button style="width:100%;" type="submit" class="btn btn-warning"><strong>Apply
+                        Settings</strong></button>
+        </div>
+        </form>
+    </div>
+    </div>
+
+    % include("footer")
+    % include("js")
+
+</body>
+
+</html>

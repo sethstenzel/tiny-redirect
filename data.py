@@ -92,7 +92,3 @@ if __name__ == "__main__":
 
     data = load_data()
     print(data)
-
-    update_settings("hostname", "0.0.0.0", "0.0.0.0")
-    data = load_data()
-    print(data["settings"])

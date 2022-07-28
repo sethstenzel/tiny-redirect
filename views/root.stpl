@@ -4,11 +4,11 @@
 
 <body>
   % include("navmenu")
-  <div class="d-flex mx-auto" style="width: 450px;">
+  <div class="d-flex mx-auto" style="width: 550px;">
 
     <div class="list-group mt-5">
       <h4>Redirects</h4>
-      <input id="redirects_filter" type="text" placeholder="Filter..." style="width: 450px;"><br>
+      <input id="redirects_filter" type="text" placeholder="Filter..." style="width: 550px;"><br>
       <div id="table_of_redirects">
         % for k, v in redirects:
         % if "://" not in v:

@@ -4,14 +4,16 @@
 
 <body>
     % include("navmenu")
-    <div class="d-flex mx-auto" style="width: 450px;">
+    <div class="d-flex mx-auto" style="width: 550px;">
         <div class="mx-auto list-group mt-5">
             <h2 id="shutdown_text">Shutting Down App Server</h2>
             <h1 class="mx-auto" id="timer"">3 secs</h1>
             </div>       
       
     </div>
-    % include(" footer") % include("js") <script>
+    % include("footer")
+    % include("js")
+    <script>
         var count = 3;
         var counter = setInterval(timer, 1000); //1000 will run it every 1 second
         function timer() {
