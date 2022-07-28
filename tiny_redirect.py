@@ -43,11 +43,8 @@ def index():
 
 
 @app.route("/about")
-def index():
-    page_data = {
-        "title": "TinyRedirect - About",
-    }
-    return template("about", page_data)
+def about():
+    redirect("https://sethstenzel.me/portfolio/tinyredirect/", 303)
 
 
 @app.route("/<alias>")

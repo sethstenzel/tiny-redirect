@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
-  % include("header")
-  <body>
-     % include("navmenu")
-     % include("testing")
-     % include("footer")
-     % include("js")
-  </body>
+% include("header")
+
+<body>
+  % include("navmenu")
+  % include("testing")
+  % include("footer")
+  % include("js")
+</body>
+
 </html>

@@ -1,34 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
-  % include("header")
-  <body>
-    % include("navmenu")
-    <div class="d-flex mx-auto" style="width: 450px;">
-        
-            <div class="list-group mt-5">
-            <h4>Redirects</h4>
-            <input id="redirects_filter" type="text" placeholder="Filter..."  style="width: 450px;"><br>
-            <div id="table_of_redirects">
-                % for k, v in redirects:
-                %     if "://" not in v:
-                %         url = "http://" + v
-                %     end
-                    <a href="{{url}}" class="list-group-item list-group-item-action"><strong>{{k}}</strong> <font size="+2">&nbsp;&#8620;&nbsp;</font><strong>{{v}}</strong></a>
-                % end
-            </div>
-            </div>       
+% include("header")
+
+<body>
+  % include("navmenu")
+  <div class="d-flex mx-auto" style="width: 450px;">
+
+    <div class="list-group mt-5">
+      <h4>Redirects</h4>
+      <input id="redirects_filter" type="text" placeholder="Filter..." style="width: 450px;"><br>
+      <div id="table_of_redirects">
+        % for k, v in redirects:
+        % if "://" not in v:
+        % url = "http://" + v
+        % end
+        <a href="{{url}}" class="list-group-item list-group-item-action"><strong>{{k}}</strong>
+          <font size="+2">&nbsp;&#8620;&nbsp;</font><strong>{{v}}</strong>
+        </a>
+        % end
+      </div>
     </div>
-    % include("footer")
-    % include("js")
-    <script>
-    $(document).ready(function(){
-      $("#redirects_filter").on("keyup", function() {
+  </div>
+  % include("footer")
+  % include("js")
+  <script>
+    $(document).ready(function () {
+      $("#redirects_filter").on("keyup", function () {
         var value = $(this).val().toLowerCase();
-        $("#table_of_redirects a").filter(function() {
+        $("#table_of_redirects a").filter(function () {
           $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
         });
       });
     });
-    </script>
-  </body>
+  </script>
+</body>
+
 </html>
