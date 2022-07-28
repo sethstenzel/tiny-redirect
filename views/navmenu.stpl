@@ -18,7 +18,7 @@
             </a>
           </li>
           <li>
-            <a href="/Redirects" class="nav-link text-white">
+            <a href="/redirects" class="nav-link text-white">
               <svg class="bi d-block mx-auto mb-1" width="20px" height="20px">
                 <img src="./img/box-arrow-in-right.svg" width=20em>
               </svg>
@@ -26,7 +26,7 @@
             </a>
           </li>
           <li>
-            <a href="/Settings" class="nav-link text-white">
+            <a href="/settings" class="nav-link text-white">
               <svg class="bi d-block mx-auto mb-1" width="20px" height="20px">
                 <img src="./img/gear-wide.svg" width=20em>
               </svg>

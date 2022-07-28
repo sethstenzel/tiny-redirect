@@ -1,3 +1,4 @@
+from operator import ne
 import data
 from bottle import Bottle, request, redirect, template, static_file, route
 from bottle import route, run, template, static_file
@@ -38,7 +39,7 @@ def index():
             "title": "TinyRedirect - List Redirects",
             "redirects": app.app_db_data["redirects"].items(),
         }
-        return template("redirects", page_data)
+        return template("root", page_data)
     return redirect("/", 303)
 
 
@@ -59,17 +60,24 @@ def alias_redirection(alias):
 
 @app.route("/add")
 def add_alias():
+    print(request)
     new_alias = request.query.alias
     new_redirect = request.query.redirect
-    print(new_alias, new_redirect)
+    goto = request.query.goto
+    print(new_alias, new_redirect, goto)
     data.add_alias(new_alias, new_redirect)
+    if goto:
+        redirect(goto, 303)
     redirect("/", 303)
 
 
 @app.route("/del")
 def delete_alias():
     del_alias = request.query.alias
+    goto = request.query.goto
     data.delete_alias(del_alias)
+    if goto:
+        redirect(goto, 303)
     redirect("/", 303)
 
 
@@ -80,7 +88,14 @@ def update_setting():
 
 @app.route("/redirects")
 def redirects():
-    pass
+    app.app_db_data = data.load_data()
+    if app.app_db_data["redirects"]:
+        page_data = {
+            "title": "TinyRedirect - Modify Redirects",
+            "redirects": app.app_db_data["redirects"].items(),
+        }
+        return template("redirects", page_data)
+    return redirect("/", 303)
 
 
 @app.route("/settings")
