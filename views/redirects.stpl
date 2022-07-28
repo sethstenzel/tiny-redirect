@@ -4,7 +4,7 @@
 
 <body>
   % include("navmenu")
-  <div class="d-flex mx-auto" style="width: 550px;">
+  <div class="d-flex mx-auto" style="width: 500px;">
 
     <div class="list-group mt-5">
       <h4>Add New Alias Redirect</h4>
@@ -28,7 +28,7 @@
       </form>
       <br><br><br>
       <h4>Delete Alias / Redirects</h4>
-      <input id="redirects_filter" type="text" placeholder="Filter..." style="width: 550px;"><br>
+      <input id="redirects_filter" type="text" placeholder="Filter..." style="width: 500px;"><br>
       <div id="table_of_redirects">
         % for k, v in redirects:
         % if "://" not in v:

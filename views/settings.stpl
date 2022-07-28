@@ -3,8 +3,8 @@
 
 <body>
     % include("navmenu")
-    <div class="d-flex mx-auto" style="width: 550px;">
-        <div class="list-group mt-5" style="width: 550px;">
+    <div class="d-flex mx-auto" style="width: 500px;">
+        <div class="list-group mt-5" style="width: 500px;">
             <h4>Modify Server Settings</h4>
 
             <form action="/update_settings" method="get">
@@ -55,7 +55,7 @@
     </div>
 
     </div>
-    <div class="d-flex mx-auto alert alert-warning" role="alert" style="width: 550px;">
+    <div class="d-flex mx-auto alert alert-warning" role="alert" style="width: 500px;">
     <h5 class="text-center"> You will need to shutdown and restart the server for theses settings to take effect.</h5>
     </div>
 
