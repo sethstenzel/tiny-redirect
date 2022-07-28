@@ -52,7 +52,8 @@ def about():
 def alias_redirection(alias):
     alias_redirect = app.app_db_data["redirects"].get(alias)
     if not alias_redirect:
-        return f'"{alias}" not found in redirect table'
+        page_data = {"title": "TinyRedirect - Alias Not Found!", "alias": alias}
+        return template("noalias", page_data)
     if not "://" in alias_redirect:
         alias_redirect = "http://" + alias_redirect
     redirect(alias_redirect, 303)
