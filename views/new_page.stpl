@@ -4,7 +4,6 @@
 
 <body>
   % include("navmenu")
-  % include("testing")
   % include("footer")
   % include("js")
 </body>
