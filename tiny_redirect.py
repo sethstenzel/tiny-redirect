@@ -3,7 +3,7 @@ import data
 from bottle import Bottle, request, redirect, template, static_file, route
 from bottle import route, run, template, static_file
 from threading import Thread
-import signal, time, os, sys
+import signal, time, os, sys, sqlite3
 
 app = Bottle()
 
@@ -178,6 +178,17 @@ def shutdown_server():
 
 
 if __name__ == "__main__":
+    if not data.database_init() and not data.load_data()["settings"]:
+        raise ("Database not found; data.db could not be found or created.")
+
+    try:
+        intial_database_load = data.load_data()
+    except sqlite3.OperationalError as error:
+        print(
+            "\nExpected database tables missing or damaged,\ndelete data.db and run again."
+        )
+        sys.exit()
+
     if len(sys.argv) > 1 and sys.argv[1] == "--defaults":
         print("Starting Server with Defaults\n\n")
         print('host="0.0.0.0"')
@@ -189,7 +200,7 @@ if __name__ == "__main__":
             reloader=True,
         )
     else:
-        app.app_db_data = data.load_data()
+        app.app_db_data = intial_database_load
         if eval(app.app_db_data["settings"]["hide-console"]):
             import win32.lib.win32con as win32con
             import win32gui
