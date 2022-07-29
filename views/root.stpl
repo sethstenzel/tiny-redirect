@@ -16,7 +16,8 @@
         % else:
         % url = v
         % end
-        <a href="{{url}}" class="list-group-item list-group-item-action"><strong>{{k}}</strong>
+        <a href="{{url}}" style="overflow-y:auto; white-space: nowrap; max-width:500px;"
+          class="list-group-item list-group-item-action"><strong>{{k}}</strong>
           <font size="+2">&nbsp;&#8620;&nbsp;</font><strong>{{v}}</strong>
         </a>
         % end

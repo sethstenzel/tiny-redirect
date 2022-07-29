@@ -4,6 +4,7 @@ from bottle import Bottle, request, redirect, template, static_file, route
 from bottle import route, run, template, static_file
 from threading import Thread
 import signal, time, os, sys, sqlite3
+import webbrowser as wb
 
 app = Bottle()
 
@@ -177,6 +178,13 @@ def shutdown_server():
     os.kill(pid, signal.SIGINT)
 
 
+def open_webpage():
+    time.sleep(5)
+    shortname = app.app_db_data["settings"]["shortname"]
+    port = app.app_db_data["settings"]["port"]
+    wb.open_new_tab(f"http://{shortname}:{port}/")
+
+
 if __name__ == "__main__":
     if not data.database_init() and not data.load_data()["settings"]:
         raise ("Database not found; data.db could not be found or created.")
@@ -188,6 +196,8 @@ if __name__ == "__main__":
             "\nExpected database tables missing or damaged,\ndelete data.db and run again."
         )
         sys.exit()
+
+    Thread(target=open_webpage).start()
 
     if len(sys.argv) > 1 and sys.argv[1] == "--defaults":
         print("Starting Server with Defaults\n\n")
