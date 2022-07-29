@@ -4,7 +4,7 @@
 
 <body>
   % include("navmenu")
-  <div class="d-flex mx-auto" style="width: 500px;">
+  <div class="d-flex mx-auto" style="width: 500px; padding-bottom:200px;">
 
     <div class="list-group mt-5">
       <h4>Redirects</h4>
