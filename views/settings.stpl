@@ -20,6 +20,7 @@
                                 <label for="shortname">Root Alias</label>
                                 <input type="text" class="form-control" name="shortname" id="shortname"
                                         value="{{current_shortname}}">
+                                <p class="alert alert-warning"><strong>When changing your root alias, you will still need to modify your hostfile to match.</strong></p>
 
                                 <input type="checkbox" class="custom-control-input" id="debug" name="debug" value="True"
                                         % if current_debug==True:
