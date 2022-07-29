@@ -94,6 +94,7 @@ def settings():
         "current_debug": eval(app.app_db_data["settings"]["bottle-debug"]),
         "current_reloader": eval(app.app_db_data["settings"]["bottle-reloader"]),
         "current_console": eval(app.app_db_data["settings"]["hide-console"]),
+        "current_shortname": app.app_db_data["settings"]["shortname"],
     }
     return template("settings", page_data)
 
@@ -108,6 +109,12 @@ def update_setting():
     update_port = request.query.port
     if update_port != "":
         data.update_setting("port", app.app_db_data["settings"]["port"], update_port)
+
+    update_shortname = request.query.shortname
+    if update_shortname != "":
+        data.update_setting(
+            "shortname", app.app_db_data["settings"]["shortname"], update_shortname
+        )
 
     update_debug = request.query.debug
     if update_debug != "":
@@ -185,7 +192,22 @@ def open_webpage():
     wb.open_new_tab(f"http://{shortname}:{port}/")
 
 
+def get_windows():
+    app_windows = []
+
+    def winEnumHandler(hwnd, ctx):
+        if win32gui.IsWindowVisible(hwnd):
+            n = win32gui.GetWindowText(hwnd)
+            if n == "TinyRedirect - App Server":
+                app_windows.append((n, hwnd))
+                print((n, hwnd))
+
+    win32gui.EnumWindows(winEnumHandler, None)
+    return app_windows
+
+
 if __name__ == "__main__":
+
     if not data.database_init() and not data.load_data()["settings"]:
         raise ("Database not found; data.db could not be found or created.")
 
@@ -214,9 +236,11 @@ if __name__ == "__main__":
         if eval(app.app_db_data["settings"]["hide-console"]):
             import win32.lib.win32con as win32con
             import win32gui
+            from win32gui import GetWindowText
 
-            my_app = win32gui.GetForegroundWindow()
-            win32gui.ShowWindow(my_app, win32con.SW_HIDE)
+            app_windows = get_windows()
+            for app_window in app_windows:
+                win32gui.ShowWindow(app_window[1], win32con.SW_HIDE)
 
         app.run(
             host=app.app_db_data["settings"]["hostname"],
