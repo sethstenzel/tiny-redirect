@@ -1,4 +1,5 @@
 import sqlite3
+from os.path import exists
 
 
 def dict_factory(cursor, row):
@@ -85,6 +86,44 @@ def update_setting(setting, current_value, new_value):
         raise (error)
     finally:
         connection.close()
+
+
+def database_init():
+    if not exists("data.db"):
+        connection = sqlite3.connect("data.db")
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            CREATE TABLE "settings" (
+                "hostname"	TEXT DEFAULT '0.0.0.0' UNIQUE,
+                "port"	INTEGER DEFAULT 80 UNIQUE,
+                "shortname"	TEXT DEFAULT 'r' UNIQUE,
+                "bottle-debug"	TEXT DEFAULT 'True' UNIQUE,
+                "bottle-reloader"	TEXT DEFAULT 'True' UNIQUE,
+                "bottle-engine"	TEXT DEFAULT 'wsgiref' UNIQUE,
+                "theme"	TEXT DEFAULT 'Light' UNIQUE,
+                "hide-console"	TEXT DEFAULT 'False' UNIQUE
+            );
+            """
+        )
+
+        cursor.execute('INSERT INTO settings (hostname) VALUES("0.0.0.0");')
+        cursor.execute(
+            """    
+            CREATE TABLE "redirects" (
+            "alias"	TEXT UNIQUE,
+            "redirect"	TEXT
+            );
+            """
+        )
+
+        cursor.execute(
+            'INSERT INTO redirects ("alias", "redirect") VALUES ("ex", "www.example.com");'
+        )
+
+        connection.commit()
+        connection.close()
+    return exists("data.db")
 
 
 if __name__ == "__main__":
