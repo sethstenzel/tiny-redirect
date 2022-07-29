@@ -61,7 +61,7 @@
       });
     });
     function filterCharacters(input) {
-      var regex = /[^A-Za-z0-9\-\_]/g;
+      var regex = /[^A-Za-z0-9\-\_\.]/g;
       input.value = input.value.replace(regex, "");
     }
   </script>
