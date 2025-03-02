@@ -34,11 +34,11 @@ def get_favicon():
 
 @app.route("/")
 def index():
-    app.app_db_data = data.load_data()
-    if app.app_db_data["redirects"]:
+    app_database_data = data.load_data()
+    if app_database_data["redirects"]:
         page_data = {
             "title": "TinyRedirect - List Redirects",
-            "redirects": app.app_db_data["redirects"].items(),
+            "redirects": app_database_data["redirects"].items(),
         }
         return template("root", page_data)
     return redirect("/redirects", 303)
@@ -51,7 +51,8 @@ def about():
 
 @app.route("/<alias>")
 def alias_redirection(alias):
-    alias_redirect = app.app_db_data["redirects"].get(alias)
+    app_database_data = data.load_data()
+    alias_redirect = app_database_data["redirects"].get(alias)
     if not alias_redirect:
         page_data = {"title": "TinyRedirect - Alias Not Found!", "alias": alias}
         return template("noalias", page_data)
@@ -85,16 +86,16 @@ def delete_alias():
 
 @app.route("/settings")
 def settings():
-    app.app_db_data = data.load_data()
+    app_database_data = data.load_data()
 
     page_data = {
         "title": "TinyRedirect - Server Settings",
-        "current_host": app.app_db_data["settings"]["hostname"],
-        "current_port": app.app_db_data["settings"]["port"],
-        "current_debug": eval(app.app_db_data["settings"]["bottle-debug"]),
-        "current_reloader": eval(app.app_db_data["settings"]["bottle-reloader"]),
-        "current_console": eval(app.app_db_data["settings"]["hide-console"]),
-        "current_shortname": app.app_db_data["settings"]["shortname"],
+        "current_host": app_database_data["settings"]["hostname"],
+        "current_port": app_database_data["settings"]["port"],
+        "current_debug": eval(app_database_data["settings"]["bottle-debug"]),
+        "current_reloader": eval(app_database_data["settings"]["bottle-reloader"]),
+        "current_console": eval(app_database_data["settings"]["hide-console"]),
+        "current_shortname": app_database_data["settings"]["shortname"],
     }
     return template("settings", page_data)
 
@@ -104,27 +105,27 @@ def update_setting():
     update_hostname = request.query.hostname
     if update_hostname != "":
         data.update_setting(
-            "hostname", app.app_db_data["settings"]["hostname"], update_hostname
+            "hostname", app_database_data["settings"]["hostname"], update_hostname
         )
     update_port = request.query.port
     if update_port != "":
-        data.update_setting("port", app.app_db_data["settings"]["port"], update_port)
+        data.update_setting("port", app_database_data["settings"]["port"], update_port)
 
     update_shortname = request.query.shortname
     if update_shortname != "":
         data.update_setting(
-            "shortname", app.app_db_data["settings"]["shortname"], update_shortname
+            "shortname", app_database_data["settings"]["shortname"], update_shortname
         )
 
     update_debug = request.query.debug
     if update_debug != "":
         data.update_setting(
-            "bottle-debug", app.app_db_data["settings"]["bottle-debug"], update_debug
+            "bottle-debug", app_database_data["settings"]["bottle-debug"], update_debug
         )
     else:
         data.update_setting(
             "bottle-debug",
-            app.app_db_data["settings"]["bottle-debug"],
+            app_database_data["settings"]["bottle-debug"],
             "False",
         )
 
@@ -133,38 +134,38 @@ def update_setting():
 
         data.update_setting(
             "bottle-reloader",
-            app.app_db_data["settings"]["bottle-reloader"],
+            app_database_data["settings"]["bottle-reloader"],
             update_reloader,
         )
     else:
         data.update_setting(
             "bottle-reloader",
-            app.app_db_data["settings"]["bottle-reloader"],
+            app_database_data["settings"]["bottle-reloader"],
             "False",
         )
 
     update_console = request.query.console
     if update_console != "":
         data.update_setting(
-            "hide-console", app.app_db_data["settings"]["hide-console"], update_console
+            "hide-console", app_database_data["settings"]["hide-console"], update_console
         )
     else:
         data.update_setting(
             "hide-console",
-            app.app_db_data["settings"]["hide-console"],
+            app_database_data["settings"]["hide-console"],
             "False",
         )
-    app.app_db_data = data.load_data()
+    app_database_data = data.load_data()
     return redirect("/settings", 303)
 
 
 @app.route("/redirects")
 def redirects():
-    app.app_db_data = data.load_data()
-    if app.app_db_data["redirects"]:
+    app_database_data = data.load_data()
+    if app_database_data["redirects"]:
         page_data = {
             "title": "TinyRedirect - Modify Redirects",
-            "redirects": app.app_db_data["redirects"].items(),
+            "redirects": app_database_data["redirects"].items(),
         }
         return template("redirects", page_data)
     return redirect("/add?alias=ex&redirect=https://example.com/", 303)
@@ -187,8 +188,8 @@ def shutdown_server():
 
 def open_webpage():
     time.sleep(5)
-    shortname = app.app_db_data["settings"]["shortname"]
-    port = app.app_db_data["settings"]["port"]
+    shortname = app_database_data["settings"]["shortname"]
+    port = app_database_data["settings"]["port"]
     wb.open_new_tab(f"http://{shortname}:{port}/")
 
 
@@ -232,8 +233,8 @@ if __name__ == "__main__":
             reloader=True,
         )
     else:
-        app.app_db_data = intial_database_load
-        if eval(app.app_db_data["settings"]["hide-console"]):
+        app_database_data = intial_database_load
+        if eval(app_database_data["settings"]["hide-console"]):
             import win32.lib.win32con as win32con
             import win32gui
             from win32gui import GetWindowText
@@ -243,9 +244,9 @@ if __name__ == "__main__":
                 win32gui.ShowWindow(app_window[1], win32con.SW_HIDE)
 
         app.run(
-            host=app.app_db_data["settings"]["hostname"],
-            port=app.app_db_data["settings"]["port"],
-            debug=eval(app.app_db_data["settings"]["bottle-debug"]),
-            reloader=eval(app.app_db_data["settings"]["bottle-reloader"]),
-            server=app.app_db_data["settings"]["bottle-engine"],
+            host=app_database_data["settings"]["hostname"],
+            port=app_database_data["settings"]["port"],
+            debug=eval(app_database_data["settings"]["bottle-debug"]),
+            reloader=eval(app_database_data["settings"]["bottle-reloader"]),
+            server=app_database_data["settings"]["bottle-engine"],
         )
