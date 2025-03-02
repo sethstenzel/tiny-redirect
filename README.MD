@@ -1,10 +1,11 @@
 # TinyRedirect
-
 A small python server utility for redirecting around the local network.
+
+!["Tiny Redirect App Screenshot"](imgs/screenshot-tr.png)
 
 ## Installation / Running
 
-Tested on Python version 3.10, any version other than that and YMMV.
+Tested on Python version 3.10 and 3.13.1, any version other than that and YMMV.
 
 1. Clone the repo
 2. Create a new virtual env with `python -m venv env`
@@ -12,7 +13,7 @@ Tested on Python version 3.10, any version other than that and YMMV.
 4. Install the required python packages with `python -m pip install -r requirements.txt`
 5. Add and entry to your host file `127.0.0.1 r`.
    - you can use anything you want for the server name, I choose 'r' for redirect, you can make it whatever you want. 
-6. Run the server with python `python tiny_redirect.py`
+6. Run the server with python `python main.py`
 
 ## If things go wrong
 
