@@ -2,6 +2,7 @@
 A small python server utility for redirecting around the local network.
 
 !["Tiny Redirect App Screenshot"](img/tr1.jpg)
+[!["Tiny Redirect App Screenshot"](http://img.youtube.com/vi/aozdcDPskHs/0.jpg)](https://youtu.be/aozdcDPskHs)
 
 ## Installation / Running
 
