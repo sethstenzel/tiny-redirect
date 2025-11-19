@@ -16,3 +16,13 @@ build/
 dist/
 bin/
 output/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# AI
+.claude
+.claude/*

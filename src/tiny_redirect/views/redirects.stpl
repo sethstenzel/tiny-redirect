@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+% include("header")
+
+<body>
+  % include("navmenu")
+  <div class="d-flex mx-auto" style="width: 500px; padding-bottom: 200px;">
+
+    <div class="list-group mt-5">
+      <h4>Add New Alias Redirect</h4>
+
+      <form action="/add" method="post">
+        <input type="hidden" name="csrf_token" value="{{csrf_token}}">
+        <div class="form-group">
+          <label for="alias">New Alias:</label>
+          <input type="text" class="form-control" name="alias" id="alias" oninput="filterCharacters(this)" required>
+        </div>
+        <div class="form-group">
+          <label for="redirect">Redirect IP/URL:</label>
+          <input type="text" class="form-control" name="redirect" id="redirect" required>
+        </div>
+        <div class="form-group">
+          <input type="hidden" name="goto" value="/redirects" />
+        </div>
+        <div class="form-group">
+          <br>
+          <button type="submit" class="btn btn-success">Add new alias redirect</button>
+        </div>
+      </form>
+      <br><br><br>
+      <h4>Delete Alias / Redirects</h4>
+      <input id="redirects_filter" type="text" placeholder="Filter..." style="width: 500px;"><br>
+      <div id="table_of_redirects">
+        % for k, v in redirects:
+        % if "://" not in v:
+        % url = "http://" + v
+        % else:
+        % url = v
+        % end
+        <div id="filtered_link" class="">
+          <a href="{{url}}"
+            style="overflow-y:auto; white-space: nowrap; max-width:500px; display: inline-block; width:80%;"
+            class="list-group-item list-group-item-action"><span><strong>{{k}}</strong>
+              <font size="+2">&nbsp;&#8620;&nbsp;</font><strong>{{v}}</strong>
+            </span>
+          </a>
+          <form action="/del" method="post" style="display: inline-block; width:18%; margin-left:0.5em; margin-top:-3em;">
+            <input type="hidden" name="csrf_token" value="{{csrf_token}}">
+            <input type="hidden" name="alias" value="{{k}}">
+            <input type="hidden" name="goto" value="/redirects">
+            <button type="submit" class="btn btn-danger" style="width:100%;">DELETE</button>
+          </form>
+        </div>
+        % end
+      </div>
+    </div>
+  </div>
+  % include("footer")
+  % include("js")
+  <script>
+    $(document).ready(function () {
+      $("#redirects_filter").on("keyup", function () {
+        var value = $(this).val().toLowerCase();
+        $("#table_of_redirects #filtered_link").filter(function () {
+          $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+        });
+      });
+    });
+    function filterCharacters(input) {
+      var regex = /[^A-Za-z0-9\-\_\.]/g;
+      input.value = input.value.replace(regex, "");
+    }
+  </script>
+</body>
+
+</html>

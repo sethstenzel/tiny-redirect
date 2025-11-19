@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+% include("header")
+
+<body>
+  % include("navmenu")
+
+  <div class="d-flex mx-auto text-center" style="width: 500px;">
+
+    <div class="list-group mt-5">
+      <div class="alert alert-warning" role="alert">
+        <h3>Alias not found!</h3>
+      </div>
+      <h5>The alias <strong>{{alias}}</strong> was not found in the alias table.</h5><br>
+      <h5>This page will redirect shortly...</h5>
+    </div>
+  </div>
+  % include("footer")
+  % include("js")
+  <script>
+    setTimeout(function () {
+      window.location.href = "/";
+    }, 10000);
+  </script>
+</body>
+
+</html>
