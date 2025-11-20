@@ -268,7 +268,7 @@ def create_tray_icon(shortname, port):
         tray_icon = pystray.Icon(
             "TinyRedirect",
             image,
-            "TinyRedirect Server",
+            "TinyRedirect",
             menu
         )
 
@@ -582,27 +582,22 @@ def main():
     if sys.platform == 'win32':
         if not check_single_instance():
             logger.warning("Another instance of TinyRedirect is already running")
-            print("TinyRedirect is already running.")
-            print("Only one instance can run at a time.")
+            logger.warning(f"Closing new instance")
             sys.exit(0)
 
     # Determine the appropriate database path
     db_path = get_db_path()
     logger.info(f"Using database: {db_path}")
-    print(f"Using database: {db_path}")
 
     if not data.database_init(db_path) and not data.load_data(db_path)["settings"]:
         logger.error("Database not found; redirects.db could not be found or created.")
-        print("Database not found; redirects.db could not be found or created.")
         sys.exit(1)
 
     try:
         initial_database_load = data.load_data(db_path)
     except sqlite3.OperationalError as e:
         logger.error(f"Database tables missing or damaged: {e}")
-        print(
-            "\nExpected database tables missing or damaged,\ndelete redirects.db and run again."
-        )
+        logger.error("Expected database tables missing or damaged,\ndelete redirects.db and run again.")
         sys.exit(1)
 
     # Check if we're in the reloader child process
@@ -613,22 +608,22 @@ def main():
     suppress_browser = "--startup" in sys.argv
 
     if len(sys.argv) > 1 and sys.argv[1] == "--defaults":
-        logger.info("Starting server with defaults: host=127.0.0.1, port=8888")
-        print("Starting Server with Defaults\n\n")
-        print('host="127.0.0.1"')
-        print('port="8888"')
+        logger.info("Starting server with defaults: host=127.0.0.1, port=80")
+        logger.info("Starting Server with Defaults\n\n")
+        logger.info('host="127.0.0.1"')
+        logger.info('port="80"')
 
         # Only start browser and tray icon in parent process (not reloader child)
         if not is_reloader_child:
             if not suppress_browser:
-                Thread(target=open_webpage, args=("localhost", "8888")).start()
-            Thread(target=create_tray_icon, args=("localhost", "8888"), daemon=True).start()
+                Thread(target=open_webpage, args=("localhost", "80")).start()
+            Thread(target=create_tray_icon, args=("localhost", "80"), daemon=True).start()
 
         app.run(
             host="127.0.0.1",
-            port="8888",
-            debug=True,
-            reloader=True,
+            port="80",
+            debug=False,
+            reloader=False,
         )
     else:
         app_database_data = initial_database_load
