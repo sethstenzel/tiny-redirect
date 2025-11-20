@@ -4,9 +4,9 @@
 
 <body>
   % include("navmenu")
-  <div class="d-flex mx-auto" style="width: 500px; padding-bottom: 200px;">
+  <div class="d-flex mx-auto" style="width: 50%; min-width:600px; padding-bottom: 20%;">
 
-    <div class="list-group mt-5">
+    <div class="list-group mt-5" style="margin:auto;">
       <h4>Add New Alias Redirect</h4>
 
       <form action="/add" method="post">
@@ -28,7 +28,7 @@
         </div>
       </form>
       <br><br><br>
-      <h4>Delete Alias / Redirects</h4>
+      <h4>Manage Alias Redirects</h4>
       <input id="redirects_filter" type="text" placeholder="Filter..." style="width: 500px;"><br>
       <div id="table_of_redirects">
         % for k, v in redirects:
@@ -37,19 +37,40 @@
         % else:
         % url = v
         % end
-        <div id="filtered_link" class="">
-          <a href="{{url}}"
-            style="overflow-y:auto; white-space: nowrap; max-width:500px; display: inline-block; width:80%;"
-            class="list-group-item list-group-item-action"><span><strong>{{k}}</strong>
-              <font size="+2">&nbsp;&#8620;&nbsp;</font><strong>{{v}}</strong>
-            </span>
-          </a>
-          <form action="/del" method="post" style="display: inline-block; width:18%; margin-left:0.5em; margin-top:-3em;">
-            <input type="hidden" name="csrf_token" value="{{csrf_token}}">
-            <input type="hidden" name="alias" value="{{k}}">
-            <input type="hidden" name="goto" value="/redirects">
-            <button type="submit" class="btn btn-danger" style="width:100%;">DELETE</button>
-          </form>
+        <div id="filtered_link" class="redirect-item" data-alias="{{k}}" data-url="{{v}}" style="margin-bottom: 10px;">
+          <div class="redirect-display">
+            <a href="{{url}}" style="overflow-y:auto; white-space: nowrap; display: inline-block; width:60%;" class="list-group-item list-group-item-action">
+              <span class="alias-text"><strong>{{k}}</strong></span>
+                <span class="upside-down-text">
+                  &nbsp;&#8620;&nbsp;
+                </span>
+              <span class="url-text"><strong>{{v}}</strong></span>
+            </a>
+            <div style="margin:auto;display: inline-block; width:39%; vertical-align: top;">
+              <button type="button" class="btn btn-primary btn-sm edit-alias-btn" style="width:32%; ;">Edit Alias</button>
+              <button type="button" class="btn btn-primary btn-sm edit-url-btn" style="width:32%;">Edit URL</button>
+              <form class="delete-form-btn" action="/del" method="post" style="display: inline-block; width:32%;">
+                <input type="hidden" name="csrf_token" value="{{csrf_token}}">
+                <input type="hidden" name="alias" value="{{k}}">
+                <input type="hidden" name="goto" value="/redirects">
+                <button type="submit" class="btn btn-danger btn-sm" style="width:100%;">Delete</button>
+              </form>
+            </div>
+          </div>
+          <div class="redirect-edit" style="display: none;">
+            <form action="/edit" method="post" class="edit-form">
+              <input type="hidden" name="csrf_token" value="{{csrf_token}}">
+              <input type="hidden" name="old_alias" value="{{k}}">
+              <input type="hidden" name="goto" value="/redirects">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <input type="text" name="new_alias" class="form-control new-alias-input" value="{{k}}" style="width:30%;" oninput="filterCharacters(this)">
+                <font size="+2">&#8620;</font>
+                <input type="text" name="new_redirect" class="form-control new-url-input" value="{{v}}" style="width:40%;">
+                <button type="submit" class="btn btn-success btn-sm" style="width:12%;">Save</button>
+                <button type="button" class="btn btn-secondary btn-sm cancel-edit-btn" style="width:12%;">Cancel</button>
+              </div>
+            </form>
+          </div>
         </div>
         % end
       </div>
@@ -59,13 +80,45 @@
   % include("js")
   <script>
     $(document).ready(function () {
+      // Filter functionality
       $("#redirects_filter").on("keyup", function () {
         var value = $(this).val().toLowerCase();
         $("#table_of_redirects #filtered_link").filter(function () {
           $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
         });
       });
+
+      // Edit Alias button - shows edit form with alias input focused
+      $(document).on('click', '.edit-alias-btn', function() {
+        var $item = $(this).closest('.redirect-item');
+        $item.find('.redirect-display').hide();
+        $item.find('.redirect-edit').show();
+        $item.find('.new-alias-input').focus().select();
+      });
+
+      // Edit URL button - shows edit form with URL input focused
+      $(document).on('click', '.edit-url-btn', function() {
+        var $item = $(this).closest('.redirect-item');
+        $item.find('.redirect-display').hide();
+        $item.find('.redirect-edit').show();
+        $item.find('.new-url-input').focus().select();
+      });
+
+      // Cancel button - hides edit form and shows display
+      $(document).on('click', '.cancel-edit-btn', function() {
+        var $item = $(this).closest('.redirect-item');
+        var originalAlias = $item.data('alias');
+        var originalUrl = $item.data('url');
+
+        // Reset form values to original
+        $item.find('.new-alias-input').val(originalAlias);
+        $item.find('.new-url-input').val(originalUrl);
+
+        $item.find('.redirect-edit').hide();
+        $item.find('.redirect-display').show();
+      });
     });
+
     function filterCharacters(input) {
       var regex = /[^A-Za-z0-9\-\_\.]/g;
       input.value = input.value.replace(regex, "");

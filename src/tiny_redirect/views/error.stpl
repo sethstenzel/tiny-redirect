@@ -4,7 +4,7 @@
 
 <body>
     % include("navmenu")
-    <div class="d-flex mx-auto" style="width: 550px;">
+    <div class="d-flex mx-auto" style="width: 50%; min-width:800px; padding-bottom: 20%;">
         <div class="mx-auto list-group mt-5">
             <div class="alert alert-danger" role="alert">
                 <h4 class="alert-heading">Error</h4>

@@ -414,6 +414,64 @@ def delete_alias():
     return redirect("/", 303)
 
 
+@app.route("/edit", method="GET")
+def edit_alias_form():
+    """Redirect GET requests to the redirects page"""
+    return redirect("/redirects", 303)
+
+
+@app.route("/edit", method="POST")
+def edit_alias():
+    """Edit an alias or URL (POST request with CSRF protection)"""
+    csrf_token = request.forms.get("csrf_token")
+    if not verify_csrf_token(csrf_token):
+        response.status = 403
+        return template("error", {
+            "title": "TinyRedirect - Error",
+            "error": "Invalid or expired form submission. Please try again."
+        })
+
+    old_alias = request.forms.get("old_alias", "").strip()
+    new_alias = request.forms.get("new_alias", "").strip()
+    new_redirect = request.forms.get("new_redirect", "").strip()
+    goto = request.forms.get("goto", "/redirects")
+
+    try:
+        # Load current data to get the existing redirect URL
+        app_database_data = data.load_data(db_path)
+        current_redirect = app_database_data["redirects"].get(old_alias)
+
+        if not current_redirect:
+            return template("error", {
+                "title": "TinyRedirect - Error",
+                "error": f"Alias '{old_alias}' not found."
+            })
+
+        # If alias changed, delete old and add new
+        if new_alias and new_alias != old_alias:
+            data.delete_alias(old_alias, db_path)
+            data.add_alias(new_alias, new_redirect if new_redirect else current_redirect, db_path)
+        # If only redirect URL changed, update the existing alias
+        elif new_redirect and new_redirect != current_redirect:
+            data.delete_alias(old_alias, db_path)
+            data.add_alias(old_alias, new_redirect, db_path)
+
+    except ValidationError as e:
+        return template("error", {
+            "title": "TinyRedirect - Error",
+            "error": str(e)
+        })
+    except Exception as e:
+        return template("error", {
+            "title": "TinyRedirect - Error",
+            "error": f"Failed to edit alias: {str(e)}"
+        })
+
+    if goto:
+        return redirect(goto, 303)
+    return redirect("/redirects", 303)
+
+
 @app.route("/settings")
 def settings():
     app_database_data = data.load_data(db_path)

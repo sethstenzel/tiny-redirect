@@ -1,0 +1,76 @@
+.btn-primary, .btn-success {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: #6a9976;
+    --bs-btn-border-color: #6a9976;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #588062;
+    --bs-btn-hover-border-color: #6a9976;
+    --bs-btn-focus-shadow-rgb: 49, 132, 253;
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: #6a9976;
+    --bs-btn-active-border-color: #6a9976;
+    --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+    --bs-btn-disabled-color: #fff;
+    --bs-btn-disabled-bg: #6a9976;
+    --bs-btn-disabled-border-color: #6a9976;
+}
+
+
+
+.edit-alias-btn {
+    margin-left: 1%;
+    height: 3.8em;
+    background-color: #6a9976;
+    color:white;
+    
+}
+
+.edit-alias-btn:hover {
+    background-color: #588062;
+    color:white;
+}
+
+.edit-url-btn {
+    margin: 0px 0px 0px 0px;
+    height: 3.8em;
+    background-color: #6a9976;
+    color:white;
+}
+
+.edit-url-btn:hover {
+    background-color: #588062;
+    color:white;
+}
+
+.delete-form-btn {
+    margin: 0px 0px 0px 0px;
+}
+
+.delete-form-btn button {
+    margin: 0px 0px 0px 0px;
+    height: 3.8em;
+}
+
+#redirects_filter {
+    width: 800px;
+    min-width: 800px;
+}
+
+.upside-down-text {
+    display: inline-block;
+    transform: scaleY(-1);
+    top:8px;
+    position: relative;
+    color: #6a9976;
+    font-size: 1.5em;
+
+}
+
+.container {
+    width: 60%;
+}
+
+.nav-menu li {
+    margin-top: auto;
+    margin-bottom: auto;
+}

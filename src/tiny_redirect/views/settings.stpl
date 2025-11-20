@@ -4,65 +4,35 @@
 
 <body>
         % include("navmenu")
-        <div class="d-flex mx-auto" style="width: 500px;">
-                <div class="list-group mt-5" style="width: 500px;">
-                        <h4>Modify Server Settings</h4>
 
-                        <form action="/update_settings" method="post">
-                                <input type="hidden" name="csrf_token" value="{{csrf_token}}">
+        <div class="" style="margin:auto; width: 30%; min-width:800px; padding-bottom: 20%;">
+        <div style="width:100%; margin:auto; display:flex; justify-content:left;">
+                <h4 style="margin-top:1em";>Modify Server Settings</h4>
+        </div>
 
-                                <label for="hostname">Server Listen Address:</label>
-                                <input type="text" class="form-control" name="hostname" id="hostname"
-                                        value="{{current_host}}">
+                <form action="/update_settings" method="post">
+                        <input type="hidden" name="csrf_token" value="{{csrf_token}}">
 
-                                <label for="port">Server Listen Port:</label>
-                                <input type="number" class="form-control" name="port" id="port"
-                                        value="{{current_port}}" min="1" max="65535">
+                        <label for="hostname">Server Listen Address:</label>
+                        <input type="text" class="form-control" name="hostname" id="hostname"
+                                value="{{current_host}}">
 
-                                <label for="shortname">Root Alias</label>
-                                <input type="text" class="form-control" name="shortname" id="shortname"
-                                        value="{{current_shortname}}">
-                                <p class="alert alert-warning"><strong>When changing your root alias, you will still need to modify your hostfile to match.</strong></p>
+                        <label for="port">Server Listen Port:</label>
+                        <input type="number" class="form-control" name="port" id="port"
+                                value="{{current_port}}" min="1" max="65535">
 
-                                <input type="checkbox" class="custom-control-input" id="debug" name="debug" value="True"
-                                        % if current_debug:
-                                        checked
-                                        % end
-                                        >
-                                <label class="custom-control-label" for="debug"><strong>Load server in
-                                                debug
-                                                mode.</strong></label><br>
+                        <button style="width:100%; margin:auto; margin-top:1em;" type="submit" class="btn btn-warning"><strong>Apply Settings</strong></button>
+                </form>
 
-                                <input type="checkbox" class="custom-control-input" id="reloader" name="reloader"
-                                        value="True"
-                                        % if current_reloader:
-                                        checked
-                                        % end
-                                        >
-                                <label class="custom-control-label" for="reloader"><strong>Reload
-                                                server after
-                                                source/template changes.</strong></label><br>
-
-                                <input type="checkbox" class="custom-control-input" id="console" name="console"
-                                        value="True"
-                                        % if current_console:
-                                        checked
-                                        % end
-                                        >
-                                <label class="custom-control-label" for="console"><strong>Hide console
-                                                after
-                                                server start.</strong></label><br><br>
-
-                                <button style="width:100%;" type="submit" class="btn btn-warning"><strong>Apply
-                                                Settings</strong></button>
-                        </form>
+                <div class="d-flex mx-auto alert alert-warning" role="alert" style="margin-top:1em; width: 100%;">
+                        <h5 class="text-center">
+                                You will need to shutdown and restart the server / application for theses settings to take effect.
+                        </h5>
                 </div>
         </div>
 
-        <div class="d-flex mx-auto alert alert-warning" role="alert" style="width: 500px;">
-                <h5 class="text-center"> You will need to shutdown and restart the server for theses settings to take
-                        effect.</h5>
-        </div>
+
+
 
         % include("footer")
         % include("js")
