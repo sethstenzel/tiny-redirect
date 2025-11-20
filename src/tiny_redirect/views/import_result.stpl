@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+% include("header")
+
+<body>
+    % include("navmenu")
+    <div class="d-flex mx-auto" style="width: 50%; min-width:800px; padding-bottom: 20%;">
+        <div class="mx-auto list-group mt-5">
+            <div class="alert alert-{{alert_type}}" role="alert">
+                % if alert_type == "success":
+                    <h4 class="alert-heading">Success</h4>
+                % elif alert_type == "info":
+                    <h4 class="alert-heading">Import Complete</h4>
+                % elif alert_type == "warning":
+                    <h4 class="alert-heading">Import Completed with Warnings</h4>
+                % else:
+                    <h4 class="alert-heading">Import Result</h4>
+                % end
+                <pre style="white-space: pre-wrap; word-wrap: break-word; background: transparent; border: none; padding: 0; margin: 1em 0;">{{message}}</pre>
+                <hr>
+                <p class="mb-0">
+                    <a href="/settings" class="btn btn-secondary">Back to Settings</a>
+                    <a href="/redirects" class="btn btn-primary">View Redirects</a>
+                </p>
+            </div>
+        </div>
+    </div>
+    % include("footer")
+    % include("js")
+</body>
+
+</html>

@@ -13,7 +13,7 @@
     % include("footer")
     % include("js")
     <script>
-        var count = 3;
+        var count = 1;
         var counter = setInterval(timer, 1000);
 
         function timer() {

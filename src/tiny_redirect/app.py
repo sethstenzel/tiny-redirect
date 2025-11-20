@@ -620,29 +620,48 @@ def import_redirects():
         stats = data.import_redirects(json_data, db_path, replace=replace_mode)
 
         # Create success message with stats
+        message_parts = []
+
+        # Main statistics
+        message_parts.append(f"Total in file: {stats['total']}")
+        message_parts.append(f"Successfully imported: {stats['imported']}")
+
+        if stats["duplicates"] > 0:
+            message_parts.append(f"Skipped (duplicates): {stats['duplicates']}")
+
+        # Show errors if any
         if stats["errors"]:
-            error_list = "<br>".join(stats["errors"][:10])  # Show first 10 errors
+            message_parts.append("")
+            message_parts.append("Errors:")
+            error_list = stats["errors"][:10]  # Show first 10 errors
+            for error in error_list:
+                message_parts.append(f"  • {error}")
             if len(stats["errors"]) > 10:
-                error_list += f"<br>... and {len(stats['errors']) - 10} more errors"
+                message_parts.append(f"  ... and {len(stats['errors']) - 10} more errors")
 
-            message = f"""
-            Import completed with warnings:<br>
-            <strong>Total: {stats['total']}</strong><br>
-            <strong>Imported: {stats['imported']}</strong><br>
-            <strong>Skipped: {stats['skipped']}</strong><br>
-            <br>Errors:<br>{error_list}
-            """
+        message = "\n".join(message_parts)
+
+        # Determine title and alert type based on results
+        if stats["errors"]:
+            title = "TinyRedirect - Import Completed with Errors"
+            alert_type = "warning"
+        elif stats["duplicates"] > 0 and stats["imported"] > 0:
+            title = "TinyRedirect - Import Completed"
+            alert_type = "info"
+        elif stats["duplicates"] > 0 and stats["imported"] == 0:
+            title = "TinyRedirect - Import Complete (All Duplicates)"
+            alert_type = "info"
         else:
-            message = f"""
-            Import successful!<br>
-            <strong>Total redirects imported: {stats['imported']}</strong>
-            """
+            title = "TinyRedirect - Import Successful"
+            alert_type = "success"
 
-        # Return success page
-        return template("error", {
-            "title": "TinyRedirect - Import Complete",
-            "error": message
-        })
+        # Return custom success page with proper styling
+        page_data = {
+            "title": title,
+            "message": message,
+            "alert_type": alert_type
+        }
+        return template("import_result", page_data)
 
     except data.ValidationError as e:
         return template("error", {

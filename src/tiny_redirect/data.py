@@ -280,6 +280,7 @@ def import_redirects(json_data, db_path="redirects.db", replace=False):
         "total": len(data["redirects"]),
         "imported": 0,
         "skipped": 0,
+        "duplicates": 0,
         "errors": []
     }
 
@@ -310,8 +311,13 @@ def import_redirects(json_data, db_path="redirects.db", replace=False):
             add_alias(alias, redirect, db_path)
             stats["imported"] += 1
         except ValidationError as e:
-            stats["errors"].append(f"Failed to import '{alias}': {str(e)}")
-            stats["skipped"] += 1
+            # Check if it's a duplicate alias error
+            if "already exists" in str(e):
+                stats["duplicates"] += 1
+                stats["skipped"] += 1
+            else:
+                stats["errors"].append(f"Failed to import '{alias}': {str(e)}")
+                stats["skipped"] += 1
         except Exception as e:
             stats["errors"].append(f"Error importing '{alias}': {str(e)}")
             stats["skipped"] += 1
