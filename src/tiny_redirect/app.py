@@ -2,6 +2,7 @@ from tiny_redirect import data
 from tiny_redirect.data import ValidationError, str_to_bool
 from bottle import Bottle, request, redirect, template, static_file, response, TEMPLATE_PATH
 from threading import Thread
+from loguru import logger
 import signal
 import time
 import os
@@ -12,6 +13,96 @@ import secrets
 import hashlib
 import requests
 import tempfile
+import subprocess
+import atexit
+
+# Global variable to store log directory path for crash handler
+_log_dir = None
+
+
+def get_log_path():
+    """
+    Determine the appropriate log file path based on platform.
+    Windows: temp directory
+    Linux/Unix: /var/log/tinyredirect or fallback to user directory
+    """
+    global _log_dir
+
+    if sys.platform == 'win32':
+        # Use temp directory on Windows
+        _log_dir = os.path.join(tempfile.gettempdir(), 'TinyRedirect')
+    else:
+        # Try standard Linux log location first
+        standard_log_dir = '/var/log/tinyredirect'
+        try:
+            os.makedirs(standard_log_dir, exist_ok=True)
+            # Test if we can write to it
+            test_file = os.path.join(standard_log_dir, '.write_test')
+            with open(test_file, 'w') as f:
+                f.write('test')
+            os.remove(test_file)
+            _log_dir = standard_log_dir
+        except (PermissionError, OSError):
+            # Fall back to user's home directory
+            _log_dir = os.path.join(os.path.expanduser('~'), '.tinyredirect', 'logs')
+
+    os.makedirs(_log_dir, exist_ok=True)
+    return os.path.join(_log_dir, 'tinyredirect.log')
+
+
+def setup_logging():
+    """Configure loguru logging with file output and crash handling."""
+    log_file = get_log_path()
+
+    # Remove default logger
+    logger.remove()
+
+    # Add console logger only if stderr is available (not available in PyInstaller windowed mode)
+    if sys.stderr is not None:
+        logger.add(
+            sys.stderr,
+            format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+            level="INFO"
+        )
+
+    # Add file logger with rotation
+    logger.add(
+        log_file,
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
+        level="DEBUG",
+        rotation="10 MB",
+        retention="7 days",
+        compression="zip"
+    )
+
+    logger.info(f"Logging initialized. Log file: {log_file}")
+    return log_file
+
+
+def open_log_folder_on_crash():
+    """Open the log folder when the app crashes (Windows only)."""
+    global _log_dir
+    if sys.platform == 'win32' and _log_dir and os.path.exists(_log_dir):
+        try:
+            subprocess.Popen(['explorer', _log_dir])
+        except Exception as e:
+            print(f"Failed to open log folder: {e}")
+
+
+def handle_exception(exc_type, exc_value, exc_traceback):
+    """Global exception handler to log crashes and open log folder on Windows."""
+    if issubclass(exc_type, KeyboardInterrupt):
+        # Don't log keyboard interrupts as crashes
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+
+    logger.opt(exception=(exc_type, exc_value, exc_traceback)).critical("Unhandled exception - application crashed!")
+
+    # Open log folder on Windows
+    if sys.platform == 'win32':
+        open_log_folder_on_crash()
+
+    sys.__excepthook__(exc_type, exc_value, exc_traceback)
 
 # Get the package directory for static files and templates
 PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -38,9 +129,18 @@ db_path = "redirects.db"
 def get_db_path():
     """
     Determine the appropriate database path.
-    First tries local directory, then falls back to Windows AppData.
+    Priority: 1) TINYREDIRECT_DB_PATH env var, 2) local directory, 3) platform-specific app data
     Returns the path to use for the database.
     """
+    # Check for environment variable first (useful for Docker)
+    env_db_path = os.environ.get('TINYREDIRECT_DB_PATH')
+    if env_db_path:
+        # Ensure directory exists
+        db_dir = os.path.dirname(env_db_path)
+        if db_dir:
+            os.makedirs(db_dir, exist_ok=True)
+        return env_db_path
+
     local_db = "redirects.db"
 
     # Try local directory first
@@ -61,7 +161,7 @@ def get_db_path():
     except (PermissionError, OSError):
         pass
 
-    # Fall back to Windows AppData location
+    # Fall back to platform-specific app data location
     if sys.platform == 'win32':
         # Use LOCALAPPDATA for application data
         app_data = os.environ.get('LOCALAPPDATA')
@@ -108,8 +208,13 @@ def verify_csrf_token(token):
 
 # System Tray Functions
 def create_tray_icon(shortname, port):
-    """Create and run the system tray icon"""
+    """Create and run the system tray icon (Windows only)"""
     global tray_icon, server_url
+
+    # Skip tray icon on non-Windows platforms (e.g., Docker)
+    if sys.platform != 'win32':
+        print("System tray icon not available on this platform")
+        return
 
     try:
         import pystray
@@ -137,6 +242,12 @@ def create_tray_icon(shortname, port):
             """Open the settings page"""
             wb.open_new_tab(f"{server_url}settings")
 
+        def on_open_logs(_icon, _item):
+            """Open the log directory in file explorer"""
+            global _log_dir
+            if _log_dir and os.path.exists(_log_dir):
+                subprocess.Popen(['explorer', _log_dir])
+
         def on_stop_server(icon, _item):
             """Stop the server and exit"""
             # wb.get(f"{server_url}shutdown")
@@ -148,6 +259,7 @@ def create_tray_icon(shortname, port):
             pystray.MenuItem("Open TinyRedirect", on_open_browser, default=True),
             pystray.MenuItem("Manage Redirects", on_open_redirects),
             pystray.MenuItem("Settings", on_open_settings),
+            pystray.MenuItem("Open Log Folder", on_open_logs),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("Stop Server && Exit", on_stop_server)
         )
@@ -416,20 +528,78 @@ def open_webpage(shortname, port):
     wb.open_new_tab(f"http://{shortname}:{port}/")
 
 
+def check_single_instance():
+    """
+    Check if another instance of TinyRedirect is already running (Windows only).
+    Returns True if this is the only instance, False if another instance is running.
+    """
+    if sys.platform != 'win32':
+        return True
+
+    try:
+        import psutil
+
+        current_pid = os.getpid()
+        exe_name = "TinyRedirect.exe"
+
+        # Count how many TinyRedirect.exe processes are running
+        instance_count = 0
+        for proc in psutil.process_iter(['pid', 'name']):
+            try:
+                if proc.info['name'] and proc.info['name'].lower() == exe_name.lower():
+                    instance_count += 1
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                pass
+
+        # If more than one instance is running, another instance exists
+        if instance_count > 1:
+            logger.info(f"Found {instance_count} instances of {exe_name} running")
+            return False
+
+        return True
+
+    except ImportError:
+        # psutil not available, skip the check
+        logger.info("Warning: psutil not available, single-instance check skipped")
+        return True
+    except Exception as e:
+        logger.info(f"Warning: Single-instance check failed: {e}")
+        return True
+
+
 def main():
     global db_path
 
+    # Set up logging first
+    setup_logging()
+
+    # Install global exception handler for crash logging
+    sys.excepthook = handle_exception
+
+    logger.info("TinyRedirect starting...")
+
+    # Check for single instance on Windows
+    if sys.platform == 'win32':
+        if not check_single_instance():
+            logger.warning("Another instance of TinyRedirect is already running")
+            print("TinyRedirect is already running.")
+            print("Only one instance can run at a time.")
+            sys.exit(0)
+
     # Determine the appropriate database path
     db_path = get_db_path()
+    logger.info(f"Using database: {db_path}")
     print(f"Using database: {db_path}")
 
     if not data.database_init(db_path) and not data.load_data(db_path)["settings"]:
+        logger.error("Database not found; redirects.db could not be found or created.")
         print("Database not found; redirects.db could not be found or created.")
         sys.exit(1)
 
     try:
         initial_database_load = data.load_data(db_path)
-    except sqlite3.OperationalError:
+    except sqlite3.OperationalError as e:
+        logger.error(f"Database tables missing or damaged: {e}")
         print(
             "\nExpected database tables missing or damaged,\ndelete redirects.db and run again."
         )
@@ -443,6 +613,7 @@ def main():
     suppress_browser = "--startup" in sys.argv
 
     if len(sys.argv) > 1 and sys.argv[1] == "--defaults":
+        logger.info("Starting server with defaults: host=127.0.0.1, port=8888")
         print("Starting Server with Defaults\n\n")
         print('host="127.0.0.1"')
         print('port="8888"')
@@ -472,7 +643,8 @@ def main():
                 Thread(target=open_webpage, args=(shortname, port)).start()
             Thread(target=create_tray_icon, args=(shortname, port), daemon=True).start()
 
-        if str_to_bool(app_database_data["settings"]["hide-console"]):
+        # Hide console window (Windows only)
+        if sys.platform == 'win32' and str_to_bool(app_database_data["settings"]["hide-console"]):
             try:
                 import win32.lib.win32con as win32con
                 import win32gui
@@ -495,9 +667,14 @@ def main():
             except ImportError:
                 print("Warning: pywin32 not available, cannot hide console window")
 
+        # Allow environment variable override for host (useful for Docker)
+        host = os.environ.get('TINYREDIRECT_HOST', app_database_data["settings"]["hostname"])
+        port = os.environ.get('TINYREDIRECT_PORT', app_database_data["settings"]["port"])
+
+        logger.info(f"Starting server on {host}:{port}")
         app.run(
-            host=app_database_data["settings"]["hostname"],
-            port=app_database_data["settings"]["port"],
+            host=host,
+            port=port,
             debug=str_to_bool(app_database_data["settings"]["bottle-debug"]),
             reloader=str_to_bool(app_database_data["settings"]["bottle-reloader"]),
             server=app_database_data["settings"]["bottle-engine"],

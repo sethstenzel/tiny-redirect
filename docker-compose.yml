@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  tinyredirect:
+    build: .
+    container_name: tinyredirect
+    ports:
+      - "80:80"
+    volumes:
+      # Named volume for database persistence
+      - tinyredirect-data:/data
+    environment:
+      - TINYREDIRECT_DB_PATH=/data/redirects.db
+      - TINYREDIRECT_HOST=0.0.0.0
+      - TINYREDIRECT_PORT=80
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:80/')"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  tinyredirect-data:
+    driver: local

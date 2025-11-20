@@ -12,6 +12,9 @@ __pycache__/
 
 *.db
 
+# Build artifacts
+*.exe
+TinyRedirect-Setup.exe
 build/
 dist/
 bin/

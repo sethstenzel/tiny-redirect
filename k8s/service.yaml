@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: tinyredirect
+  labels:
+    app: tinyredirect
+spec:
+  type: LoadBalancer  # Use NodePort or ClusterIP if no LoadBalancer available
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+  selector:
+    app: tinyredirect

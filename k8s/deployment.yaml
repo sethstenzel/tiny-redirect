@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tinyredirect
+  labels:
+    app: tinyredirect
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tinyredirect
+  template:
+    metadata:
+      labels:
+        app: tinyredirect
+    spec:
+      containers:
+        - name: tinyredirect
+          image: tiny-redirect:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          env:
+            - name: TINYREDIRECT_DB_PATH
+              value: /data/redirects.db
+            - name: TINYREDIRECT_HOST
+              value: "0.0.0.0"
+            - name: TINYREDIRECT_PORT
+              value: "80"
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: tinyredirect-pvc
