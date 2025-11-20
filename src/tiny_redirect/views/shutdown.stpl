@@ -7,7 +7,7 @@
     <div class="d-flex mx-auto" style="width: 50%; min-width:800px; padding-bottom: 20%;">
         <div class="mx-auto list-group mt-5">
             <h2 id="shutdown_text">Shutting Down App Server</h2>
-            <h1 class="mx-auto" id="timer">3 secs</h1>
+            <h1 class="mx-auto" id="timer">1 secs</h1>
         </div>
     </div>
     % include("footer")

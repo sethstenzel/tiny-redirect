@@ -251,8 +251,9 @@ def create_tray_icon(shortname, port):
         def on_stop_server(icon, _item):
             """Stop the server and exit"""
             # wb.get(f"{server_url}shutdown")
-            requests.get(f"{server_url}shutdown")
+            shutdown_server()
             icon.stop()
+            
 
         # Create the menu
         menu = pystray.Menu(
@@ -686,10 +687,14 @@ def shutdown():
 
 
 def shutdown_server():
-    time.sleep(4)
+    time.sleep(3)
     stop_tray_icon()
     global MAIN_APP_PID
-    os.kill(MAIN_APP_PID, signal.SIGINT)
+    try:
+        os.kill(MAIN_APP_PID, signal.SIGINT)
+    except:
+        logger.warning(f"Unable to kill process {MAIN_APP_PID}...")
+        wb.open_new_tab(f"http://{shortname}:{port}/shutdown")
 
 
 def open_webpage(shortname, port):
