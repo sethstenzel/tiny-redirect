@@ -1,5 +1,6 @@
 import sqlite3
 import re
+import json
 from os.path import exists
 
 
@@ -225,6 +226,97 @@ def database_init(db_path="redirects.db"):
         connection.commit()
         connection.close()
     return exists(db_path)
+
+
+def export_redirects(db_path="redirects.db"):
+    """Export all redirects to JSON format"""
+    data = load_redirects({"redirects": {}}, db_path)
+
+    # Convert redirects dict to list format
+    redirects_list = [
+        {"alias": alias, "redirect": redirect}
+        for alias, redirect in data["redirects"].items()
+    ]
+
+    export_data = {
+        "file_type": "tredirects",
+        "version": "1.0",
+        "redirects": redirects_list
+    }
+
+    return json.dumps(export_data, indent=2)
+
+
+def import_redirects(json_data, db_path="redirects.db", replace=False):
+    """
+    Import redirects from JSON data
+
+    Args:
+        json_data: JSON string containing redirect data
+        db_path: Path to database
+        replace: If True, clear existing redirects before import
+
+    Returns:
+        dict with import statistics
+    """
+    try:
+        data = json.loads(json_data)
+    except json.JSONDecodeError as e:
+        raise ValidationError(f"Invalid JSON file: {str(e)}")
+
+    # Validate file type
+    if data.get("file_type") != "tredirects":
+        raise ValidationError("Invalid file: not a tredirects.json file. Missing or incorrect 'file_type' identifier.")
+
+    # Validate version
+    if data.get("version") != "1.0":
+        raise ValidationError(f"Unsupported file version: {data.get('version')}")
+
+    # Validate redirects structure
+    if "redirects" not in data or not isinstance(data["redirects"], list):
+        raise ValidationError("Invalid file format: missing or invalid 'redirects' field")
+
+    stats = {
+        "total": len(data["redirects"]),
+        "imported": 0,
+        "skipped": 0,
+        "errors": []
+    }
+
+    # If replace mode, clear existing redirects
+    if replace:
+        connection = sqlite3.connect(db_path)
+        try:
+            cursor = connection.cursor()
+            cursor.execute("DELETE FROM redirects")
+            connection.commit()
+        except sqlite3.OperationalError as error:
+            connection.rollback()
+            raise error
+        finally:
+            connection.close()
+
+    # Import each redirect
+    for item in data["redirects"]:
+        if not isinstance(item, dict) or "alias" not in item or "redirect" not in item:
+            stats["errors"].append("Skipped invalid entry: missing alias or redirect")
+            stats["skipped"] += 1
+            continue
+
+        alias = item["alias"]
+        redirect = item["redirect"]
+
+        try:
+            add_alias(alias, redirect, db_path)
+            stats["imported"] += 1
+        except ValidationError as e:
+            stats["errors"].append(f"Failed to import '{alias}': {str(e)}")
+            stats["skipped"] += 1
+        except Exception as e:
+            stats["errors"].append(f"Error importing '{alias}': {str(e)}")
+            stats["skipped"] += 1
+
+    return stats
 
 
 if __name__ == "__main__":

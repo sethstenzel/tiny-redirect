@@ -565,6 +565,98 @@ def redirects():
     return redirect("/redirects", 303)
 
 
+@app.route("/export_redirects")
+def export_redirects():
+    """Export all redirects to tredirects.json file"""
+    try:
+        json_data = data.export_redirects(db_path)
+
+        # Set headers for file download
+        response.content_type = 'application/json'
+        response.headers['Content-Disposition'] = 'attachment; filename="tredirects.json"'
+
+        return json_data
+    except Exception as e:
+        logger.error(f"Export failed: {e}")
+        return template("error", {
+            "title": "TinyRedirect - Export Error",
+            "error": f"Failed to export redirects: {str(e)}"
+        })
+
+
+@app.route("/import_redirects", method="GET")
+def import_redirects_form():
+    """Redirect GET requests to settings page"""
+    return redirect("/settings", 303)
+
+
+@app.route("/import_redirects", method="POST")
+def import_redirects():
+    """Import redirects from uploaded tredirects.json file"""
+    csrf_token = request.forms.get("csrf_token")
+    if not verify_csrf_token(csrf_token):
+        response.status = 403
+        return template("error", {
+            "title": "TinyRedirect - Error",
+            "error": "Invalid or expired form submission. Please try again."
+        })
+
+    # Get the uploaded file
+    upload = request.files.get('import_file')
+    if not upload:
+        return template("error", {
+            "title": "TinyRedirect - Import Error",
+            "error": "No file uploaded"
+        })
+
+    # Get replace mode checkbox
+    replace_mode = request.forms.get("replace_mode", "") == "on"
+
+    try:
+        # Read the file content
+        json_data = upload.file.read().decode('utf-8')
+
+        # Import the redirects
+        stats = data.import_redirects(json_data, db_path, replace=replace_mode)
+
+        # Create success message with stats
+        if stats["errors"]:
+            error_list = "<br>".join(stats["errors"][:10])  # Show first 10 errors
+            if len(stats["errors"]) > 10:
+                error_list += f"<br>... and {len(stats['errors']) - 10} more errors"
+
+            message = f"""
+            Import completed with warnings:<br>
+            <strong>Total: {stats['total']}</strong><br>
+            <strong>Imported: {stats['imported']}</strong><br>
+            <strong>Skipped: {stats['skipped']}</strong><br>
+            <br>Errors:<br>{error_list}
+            """
+        else:
+            message = f"""
+            Import successful!<br>
+            <strong>Total redirects imported: {stats['imported']}</strong>
+            """
+
+        # Return success page
+        return template("error", {
+            "title": "TinyRedirect - Import Complete",
+            "error": message
+        })
+
+    except data.ValidationError as e:
+        return template("error", {
+            "title": "TinyRedirect - Import Error",
+            "error": str(e)
+        })
+    except Exception as e:
+        logger.error(f"Import failed: {e}")
+        return template("error", {
+            "title": "TinyRedirect - Import Error",
+            "error": f"Failed to import redirects: {str(e)}"
+        })
+
+
 @app.route("/shutdown")
 def shutdown():
     page_data = {

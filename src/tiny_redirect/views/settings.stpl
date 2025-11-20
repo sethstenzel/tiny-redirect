@@ -29,6 +29,43 @@
                                 You will need to shutdown and restart the server / application for theses settings to take effect.
                         </h5>
                 </div>
+
+                <!-- Import/Export Section -->
+                <div style="width:100%; margin:auto; display:flex; justify-content:left; margin-top:2em;">
+                        <h4 style="margin-top:1em";>Import / Export Redirects</h4>
+                </div>
+
+                <!-- Export Button -->
+                <div style="margin-top:1em;">
+                        <a href="/export_redirects" class="btn btn-success" style="width:100%;">
+                                <strong>Export Redirects to tredirects.json</strong>
+                        </a>
+                        <small class="form-text text-muted">
+                                Download all current redirects as a tredirects.json file
+                        </small>
+                </div>
+
+                <!-- Import Form -->
+                <form action="/import_redirects" method="post" enctype="multipart/form-data" style="margin-top:1em;">
+                        <input type="hidden" name="csrf_token" value="{{csrf_token}}">
+
+                        <label for="import_file">Import Redirects from tredirects.json:</label>
+                        <input type="file" class="form-control" name="import_file" id="import_file" accept=".json" required>
+
+                        <div class="form-check" style="margin-top:0.5em;">
+                                <input type="checkbox" class="form-check-input" name="replace_mode" id="replace_mode">
+                                <label class="form-check-label" for="replace_mode">
+                                        Replace all existing redirects (if unchecked, will merge and skip duplicates)
+                                </label>
+                        </div>
+
+                        <button style="width:100%; margin:auto; margin-top:1em;" type="submit" class="btn btn-primary">
+                                <strong>Import Redirects</strong>
+                        </button>
+                        <small class="form-text text-muted">
+                                Only tredirects.json files with the correct identifier will be accepted
+                        </small>
+                </form>
         </div>
 
 
