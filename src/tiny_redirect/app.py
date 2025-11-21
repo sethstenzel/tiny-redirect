@@ -50,8 +50,13 @@ def get_log_path():
     return os.path.join(_log_dir, 'tinyredirect.log')
 
 
-def setup_logging():
-    """Configure loguru logging with file output and crash handling."""
+def setup_logging(enable_info_logging=False):
+    """
+    Configure loguru logging with file output and crash handling.
+
+    Args:
+        enable_info_logging: If True, log INFO level to file. If False, only WARNING and above to file.
+    """
     log_file = get_log_path()
 
     # Remove default logger
@@ -65,17 +70,24 @@ def setup_logging():
             level="INFO"
         )
 
+    # Determine file log level based on flag
+    file_log_level = "DEBUG" if enable_info_logging else "WARNING"
+
     # Add file logger with rotation
     logger.add(
         log_file,
         format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
-        level="DEBUG",
+        level=file_log_level,
         rotation="10 MB",
         retention="7 days",
         compression="zip"
     )
 
-    logger.info(f"Logging initialized. Log file: {log_file}")
+    if enable_info_logging:
+        logger.info(f"Logging initialized with INFO level enabled. Log file: {log_file}")
+    else:
+        logger.warning(f"Logging initialized (file: WARNING+ only, use --info for detailed logs). Log file: {log_file}")
+
     return log_file
 
 
@@ -85,8 +97,10 @@ def open_log_folder_on_crash():
     if sys.platform == 'win32' and _log_dir and os.path.exists(_log_dir):
         try:
             subprocess.Popen(['explorer', _log_dir])
+            logger.info(f"Opened log folder for crash inspection: {_log_dir}")
         except Exception as e:
-            print(f"Failed to open log folder: {e}")
+            logger.error(f"Failed to open log folder: {e}")
+            print(f"Failed to open log folder: {e}", file=sys.stderr)
 
 
 def handle_exception(exc_type, exc_value, exc_traceback):
@@ -177,7 +191,8 @@ def get_db_path():
     try:
         os.makedirs(app_dir, exist_ok=True)
     except OSError as e:
-        print(f"Error creating application directory: {e}")
+        # Can't use logger here as this may be called before logging is set up
+        print(f"Error creating application directory: {e}", file=sys.stderr)
         # Last resort: use temp directory
         app_dir = tempfile.gettempdir()
 
@@ -211,47 +226,76 @@ def create_tray_icon(shortname, port):
     """Create and run the system tray icon (Windows only)"""
     global tray_icon, server_url
 
+    logger.info(f"create_tray_icon: Starting tray icon creation (shortname={shortname}, port={port})")
+
     # Skip tray icon on non-Windows platforms (e.g., Docker)
     if sys.platform != 'win32':
-        print("System tray icon not available on this platform")
+        logger.info("System tray icon not available on non-Windows platform")
         return
 
     try:
+        logger.info("create_tray_icon: Importing pystray and PIL...")
         import pystray
         from PIL import Image
 
         server_url = f"http://{shortname}:{port}/"
+        logger.info(f"create_tray_icon: Server URL set to {server_url}")
 
         # Try to load the app icon, fall back to a generated one
         icon_path = os.path.join(STATIC_DIR, "img", "favicon.ico")
+        logger.info(f"create_tray_icon: Looking for icon at {icon_path}")
         if os.path.exists(icon_path):
+            logger.info(f"create_tray_icon: Loading icon from {icon_path}")
             image = Image.open(icon_path)
         else:
+            logger.info("create_tray_icon: Icon not found, creating default green icon")
             # Create a simple green icon if favicon not found
             image = Image.new('RGB', (64, 64), color=(106, 153, 118))
 
         def on_open_browser(_icon, _item):
             """Open the web interface in browser"""
-            wb.open_new_tab(server_url)
+            logger.info(f"on_open_browser: Opening {server_url}")
+            try:
+                wb.open_new_tab(server_url)
+            except Exception as e:
+                logger.error(f"on_open_browser: Failed to open browser: {e}")
 
         def on_open_redirects(_icon, _item):
             """Open the redirects management page"""
-            wb.open_new_tab(f"{server_url}redirects")
+            url = f"{server_url}redirects"
+            logger.info(f"on_open_redirects: Opening {url}")
+            try:
+                wb.open_new_tab(url)
+            except Exception as e:
+                logger.error(f"on_open_redirects: Failed to open browser: {e}")
 
         def on_open_settings(_icon, _item):
             """Open the settings page"""
-            wb.open_new_tab(f"{server_url}settings")
+            url = f"{server_url}settings"
+            logger.info(f"on_open_settings: Opening {url}")
+            try:
+                wb.open_new_tab(url)
+            except Exception as e:
+                logger.error(f"on_open_settings: Failed to open browser: {e}")
 
         def on_open_logs(_icon, _item):
             """Open the log directory in file explorer"""
             global _log_dir
+            logger.info(f"on_open_logs: Opening log directory {_log_dir}")
             if _log_dir and os.path.exists(_log_dir):
-                subprocess.Popen(['explorer', _log_dir])
+                try:
+                    subprocess.Popen(['explorer', _log_dir])
+                    logger.info("on_open_logs: Explorer opened successfully")
+                except Exception as e:
+                    logger.error(f"on_open_logs: Failed to open explorer: {e}")
+            else:
+                logger.warning(f"on_open_logs: Log directory not found or not set: {_log_dir}")
 
         def on_stop_server(icon, _item):
             """Stop the server and exit"""
-            # wb.get(f"{server_url}shutdown")
+            logger.info("on_stop_server: User requested shutdown from tray icon")
             shutdown_server()
+            logger.info("on_stop_server: Stopping tray icon...")
             icon.stop()
             
 
@@ -266,6 +310,7 @@ def create_tray_icon(shortname, port):
         )
 
         # Create and run the icon
+        logger.info("create_tray_icon: Creating pystray Icon object...")
         tray_icon = pystray.Icon(
             "TinyRedirect",
             image,
@@ -273,13 +318,15 @@ def create_tray_icon(shortname, port):
             menu
         )
 
+        logger.info("create_tray_icon: Starting tray icon (this will block until icon is closed)...")
         tray_icon.run()
+        logger.info("create_tray_icon: Tray icon has been stopped")
 
     except ImportError as e:
-        print(f"Warning: Could not create system tray icon: {e}")
-        print("Install pystray and pillow for system tray support: pip install pystray pillow")
+        logger.warning(f"Could not create system tray icon - ImportError: {e}")
+        logger.warning("Install pystray and pillow for system tray support: pip install pystray pillow")
     except Exception as e:
-        print(f"Warning: System tray icon error: {e}")
+        logger.error(f"System tray icon error: {e}", exc_info=True)
 
 
 def stop_tray_icon():
@@ -287,9 +334,13 @@ def stop_tray_icon():
     global tray_icon
     if tray_icon:
         try:
+            logger.info("stop_tray_icon: Stopping tray icon...")
             tray_icon.stop()
-        except:
-            pass
+            logger.info("stop_tray_icon: Tray icon stopped successfully")
+        except Exception as e:
+            logger.warning(f"stop_tray_icon: Error stopping tray icon: {e}")
+    else:
+        logger.info("stop_tray_icon: No tray icon to stop")
 
 
 # Static File Routes
@@ -687,167 +738,283 @@ def shutdown():
 
 
 def shutdown_server():
+    logger.info("shutdown_server: Shutdown sequence initiated...")
+    logger.info("shutdown_server: Waiting 3 seconds before stopping...")
     time.sleep(3)
+    logger.info("shutdown_server: Stopping tray icon...")
     stop_tray_icon()
     global MAIN_APP_PID
+    logger.info(f"shutdown_server: Attempting to terminate process {MAIN_APP_PID}...")
     try:
         os.kill(MAIN_APP_PID, signal.SIGINT)
-    except:
-        logger.warning(f"Unable to kill process {MAIN_APP_PID}...")
+        logger.info(f"shutdown_server: Sent SIGINT to process {MAIN_APP_PID}")
+    except Exception as e:
+        logger.warning(f"shutdown_server: Unable to kill process {MAIN_APP_PID}: {e}")
+        logger.warning("shutdown_server: Opening shutdown URL as fallback...")
         wb.open_new_tab(f"http://{shortname}:{port}/shutdown")
 
 
 def open_webpage(shortname, port):
+    logger.info(f"open_webpage: Waiting 5 seconds before opening browser...")
     time.sleep(5)
-    wb.open_new_tab(f"http://{shortname}:{port}/")
+    url = f"http://{shortname}:{port}/"
+    logger.info(f"open_webpage: Opening browser tab for {url}")
+    try:
+        wb.open_new_tab(url)
+        logger.info("open_webpage: Browser opened successfully")
+    except Exception as e:
+        logger.error(f"open_webpage: Failed to open browser: {e}")
 
 
 def check_single_instance():
     """
     Check if another instance of TinyRedirect is already running (Windows only).
-    Returns True if this is the only instance, False if another instance is running.
+    Uses a named mutex for reliable single-instance detection.
+    Returns tuple: (is_single_instance, mutex_handle)
+    - is_single_instance: True if this is the only instance, False if another exists
+    - mutex_handle: Handle to keep mutex alive (None if not single instance or not Windows)
+
+    Note: This function is called BEFORE logging is initialized, so it prints to stderr.
     """
+    print(f"[DEBUG] check_single_instance: Starting single instance check (platform: {sys.platform})", file=sys.stderr)
+
     if sys.platform != 'win32':
-        return True
+        print("[DEBUG] check_single_instance: Not Windows, skipping mutex check", file=sys.stderr)
+        return True, None
 
     try:
-        import psutil
+        import win32event
+        import win32api
+        import winerror
 
-        current_pid = os.getpid()
-        exe_name = "TinyRedirect.exe"
+        # Create a unique mutex name for TinyRedirect
+        mutex_name = "Global\\TinyRedirect_SingleInstance_Mutex"
+        print(f"[DEBUG] check_single_instance: Creating mutex '{mutex_name}'", file=sys.stderr)
 
-        # Count how many TinyRedirect.exe processes are running
-        instance_count = 0
-        for proc in psutil.process_iter(['pid', 'name']):
-            try:
-                if proc.info['name'] and proc.info['name'].lower() == exe_name.lower():
-                    instance_count += 1
-            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-                pass
+        # Try to create the mutex
+        mutex = win32event.CreateMutex(None, False, mutex_name)
+        last_error = win32api.GetLastError()
+        print(f"[DEBUG] check_single_instance: Mutex created, last_error={last_error}", file=sys.stderr)
 
-        # If more than one instance is running, another instance exists
-        if instance_count > 1:
-            logger.info(f"Found {instance_count} instances of {exe_name} running")
-            return False
+        # If the mutex already exists, another instance is running
+        if last_error == winerror.ERROR_ALREADY_EXISTS:
+            print("[DEBUG] check_single_instance: Mutex already exists - another instance is running", file=sys.stderr)
+            # Close the mutex handle since we won't use it
+            win32api.CloseHandle(mutex)
+            return False, None
 
-        return True
+        # This is the first instance - keep the mutex handle alive
+        print("[DEBUG] check_single_instance: This is the first instance, mutex acquired", file=sys.stderr)
+        return True, mutex
 
-    except ImportError:
-        # psutil not available, skip the check
-        logger.info("Warning: psutil not available, single-instance check skipped")
-        return True
+    except ImportError as e:
+        # pywin32 not available, skip the check
+        print(f"Warning: pywin32 not available, single-instance check skipped: {e}", file=sys.stderr)
+        return True, None
     except Exception as e:
-        logger.info(f"Warning: Single-instance check failed: {e}")
-        return True
+        print(f"Warning: Single-instance check failed: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+        return True, None
 
 
 def main():
     global db_path
-
-    # Set up logging first
-    setup_logging()
-
-    # Install global exception handler for crash logging
-    sys.excepthook = handle_exception
-
-    logger.info("TinyRedirect starting...")
-
-    # Check for single instance on Windows
-    if sys.platform == 'win32':
-        if not check_single_instance():
-            logger.warning("Another instance of TinyRedirect is already running")
-            logger.warning(f"Closing new instance")
-            sys.exit(0)
-
-    # Determine the appropriate database path
-    db_path = get_db_path()
-    logger.info(f"Using database: {db_path}")
-
-    if not data.database_init(db_path) and not data.load_data(db_path)["settings"]:
-        logger.error("Database not found; redirects.db could not be found or created.")
-        sys.exit(1)
+    mutex_handle = None
 
     try:
-        initial_database_load = data.load_data(db_path)
-    except sqlite3.OperationalError as e:
-        logger.error(f"Database tables missing or damaged: {e}")
-        logger.error("Expected database tables missing or damaged,\ndelete redirects.db and run again.")
+        print(f"[DEBUG] main: TinyRedirect starting (PID: {os.getpid()})", file=sys.stderr)
+
+        # Check for single instance BEFORE starting any threads or logging
+        # This must be done first to avoid race conditions
+        if sys.platform == 'win32':
+            print("[DEBUG] main: Performing single instance check...", file=sys.stderr)
+            is_single, mutex_handle = check_single_instance()
+            if not is_single:
+                # Can't use logger yet, so print to stderr
+                print("ERROR: Another instance of TinyRedirect is already running", file=sys.stderr)
+                sys.exit(0)
+            # Keep mutex_handle alive for the duration of the program
+            # Register cleanup to close mutex on exit
+            if mutex_handle:
+                print(f"[DEBUG] main: Mutex acquired successfully (handle: {mutex_handle})", file=sys.stderr)
+                def cleanup_mutex():
+                    try:
+                        import win32api
+                        print("[DEBUG] cleanup_mutex: Releasing mutex", file=sys.stderr)
+                        win32api.CloseHandle(mutex_handle)
+                    except Exception as e:
+                        print(f"[DEBUG] cleanup_mutex: Failed to release mutex: {e}", file=sys.stderr)
+                atexit.register(cleanup_mutex)
+
+        # Check for --info flag to enable detailed logging
+        enable_info_logging = "--info" in sys.argv
+
+        # Set up logging after single instance check
+        print("[DEBUG] main: Setting up logging...", file=sys.stderr)
+        print(f"[DEBUG] main: INFO logging to file: {enable_info_logging}", file=sys.stderr)
+        setup_logging(enable_info_logging)
+
+        # Install global exception handler for crash logging
+        sys.excepthook = handle_exception
+
+        logger.info("=" * 80)
+        logger.info(f"TinyRedirect starting (PID: {os.getpid()})")
+        logger.info(f"Platform: {sys.platform}")
+        logger.info(f"Python version: {sys.version}")
+        logger.info(f"Command line args: {sys.argv}")
+
+        # Determine the appropriate database path
+        logger.info("Determining database path...")
+        db_path = get_db_path()
+        logger.info(f"Using database: {db_path}")
+
+        logger.info("Initializing database...")
+        if not data.database_init(db_path) and not data.load_data(db_path)["settings"]:
+            logger.error("Database not found; redirects.db could not be found or created.")
+            sys.exit(1)
+
+        try:
+            logger.info("Loading database settings...")
+            initial_database_load = data.load_data(db_path)
+            logger.info(f"Database loaded successfully. Redirects count: {len(initial_database_load['redirects'])}")
+        except sqlite3.OperationalError as e:
+            logger.error(f"Database tables missing or damaged: {e}")
+            logger.error("Expected database tables missing or damaged,\ndelete redirects.db and run again.")
+            sys.exit(1)
+
+        # Check if we're in the reloader child process
+        # When reloader=True, Bottle spawns a child process with BOTTLE_CHILD env var
+        is_reloader_child = os.environ.get('BOTTLE_CHILD') == 'true'
+        logger.info(f"Reloader child process: {is_reloader_child}")
+
+        # Check for --startup flag to suppress browser opening
+        suppress_browser = "--startup" in sys.argv
+        logger.info(f"Suppress browser opening: {suppress_browser}")
+
+        if len(sys.argv) > 1 and sys.argv[1] == "--defaults":
+            logger.info("Starting server with defaults: host=127.0.0.1, port=80")
+            logger.info("Starting Server with Defaults\n\n")
+            logger.info('host="127.0.0.1"')
+            logger.info('port="80"')
+
+            # Only start browser and tray icon in parent process (not reloader child)
+            if not is_reloader_child:
+                logger.info("Starting background threads (browser opener and tray icon)...")
+                if not suppress_browser:
+                    logger.info("Starting browser opener thread...")
+                    Thread(target=open_webpage, args=("localhost", "80")).start()
+                logger.info("Starting tray icon thread...")
+                Thread(target=create_tray_icon, args=("localhost", "80"), daemon=True).start()
+
+            logger.info("Starting Bottle server with defaults...")
+            app.run(
+                host="127.0.0.1",
+                port="80",
+                debug=False,
+                reloader=False,
+            )
+        else:
+            app_database_data = initial_database_load
+
+            # Start browser with configured settings
+            shortname = app_database_data["settings"]["shortname"]
+            port = app_database_data["settings"]["port"]
+            logger.info(f"Configured shortname: {shortname}")
+            logger.info(f"Configured port: {port}")
+
+            # Only start browser and tray icon in parent process (not reloader child)
+            if not is_reloader_child:
+                logger.info("Starting background threads (browser opener and tray icon)...")
+                if not suppress_browser:
+                    logger.info("Starting browser opener thread...")
+                    Thread(target=open_webpage, args=(shortname, port)).start()
+                logger.info("Starting tray icon thread...")
+                Thread(target=create_tray_icon, args=(shortname, port), daemon=True).start()
+
+            # Hide console window (Windows only)
+            if sys.platform == 'win32' and str_to_bool(app_database_data["settings"]["hide-console"]):
+                logger.info("Attempting to hide console window...")
+                try:
+                    import win32.lib.win32con as win32con
+                    import win32gui
+
+                    def get_windows():
+                        app_windows = []
+
+                        def winEnumHandler(hwnd, _ctx):
+                            if win32gui.IsWindowVisible(hwnd):
+                                n = win32gui.GetWindowText(hwnd)
+                                if n == "TinyRedirect - App Server":
+                                    app_windows.append((n, hwnd))
+
+                        win32gui.EnumWindows(winEnumHandler, None)
+                        return app_windows
+
+                    app_windows = get_windows()
+                    logger.info(f"Found {len(app_windows)} matching windows to hide")
+                    for app_window in app_windows:
+                        logger.info(f"Hiding window: {app_window[0]}")
+                        win32gui.ShowWindow(app_window[1], win32con.SW_HIDE)
+                except ImportError as e:
+                    logger.warning(f"pywin32 not available, cannot hide console window: {e}")
+                except Exception as e:
+                    logger.error(f"Failed to hide console window: {e}")
+
+            # Allow environment variable override for host (useful for Docker)
+            host = os.environ.get('TINYREDIRECT_HOST', app_database_data["settings"]["hostname"])
+            port = os.environ.get('TINYREDIRECT_PORT', app_database_data["settings"]["port"])
+
+            logger.info(f"Final server configuration: host={host}, port={port}")
+            logger.info(f"Debug mode: {str_to_bool(app_database_data['settings']['bottle-debug'])}")
+            logger.info(f"Reloader mode: {str_to_bool(app_database_data['settings']['bottle-reloader'])}")
+            logger.info(f"Server engine: {app_database_data['settings']['bottle-engine']}")
+            logger.info("Starting Bottle server...")
+            logger.info("=" * 80)
+
+            app.run(
+                host=host,
+                port=port,
+                debug=str_to_bool(app_database_data["settings"]["bottle-debug"]),
+                reloader=str_to_bool(app_database_data["settings"]["bottle-reloader"]),
+                server=app_database_data["settings"]["bottle-engine"],
+            )
+
+    except KeyboardInterrupt:
+        logger.info("Received keyboard interrupt (Ctrl+C), shutting down...")
+        print("\n[DEBUG] main: Keyboard interrupt received", file=sys.stderr)
+    except SystemExit as e:
+        logger.info(f"System exit called with code: {e.code}")
+        print(f"[DEBUG] main: System exit with code {e.code}", file=sys.stderr)
+        raise
+    except Exception as e:
+        logger.critical("=" * 80)
+        logger.critical("FATAL ERROR: Application crashed!")
+        logger.critical(f"Exception type: {type(e).__name__}")
+        logger.critical(f"Exception message: {str(e)}")
+        logger.critical("Full traceback:")
+        logger.exception(e)
+        logger.critical("=" * 80)
+
+        # Also print to stderr for immediate visibility
+        print("\n" + "=" * 80, file=sys.stderr)
+        print("FATAL ERROR: TinyRedirect has crashed!", file=sys.stderr)
+        print(f"Exception: {type(e).__name__}: {str(e)}", file=sys.stderr)
+        print("=" * 80, file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+
+        # Open log folder on Windows
+        if sys.platform == 'win32':
+            open_log_folder_on_crash()
+
         sys.exit(1)
-
-    # Check if we're in the reloader child process
-    # When reloader=True, Bottle spawns a child process with BOTTLE_CHILD env var
-    is_reloader_child = os.environ.get('BOTTLE_CHILD') == 'true'
-
-    # Check for --startup flag to suppress browser opening
-    suppress_browser = "--startup" in sys.argv
-
-    if len(sys.argv) > 1 and sys.argv[1] == "--defaults":
-        logger.info("Starting server with defaults: host=127.0.0.1, port=80")
-        logger.info("Starting Server with Defaults\n\n")
-        logger.info('host="127.0.0.1"')
-        logger.info('port="80"')
-
-        # Only start browser and tray icon in parent process (not reloader child)
-        if not is_reloader_child:
-            if not suppress_browser:
-                Thread(target=open_webpage, args=("localhost", "80")).start()
-            Thread(target=create_tray_icon, args=("localhost", "80"), daemon=True).start()
-
-        app.run(
-            host="127.0.0.1",
-            port="80",
-            debug=False,
-            reloader=False,
-        )
-    else:
-        app_database_data = initial_database_load
-
-        # Start browser with configured settings
-        shortname = app_database_data["settings"]["shortname"]
-        port = app_database_data["settings"]["port"]
-
-        # Only start browser and tray icon in parent process (not reloader child)
-        if not is_reloader_child:
-            if not suppress_browser:
-                Thread(target=open_webpage, args=(shortname, port)).start()
-            Thread(target=create_tray_icon, args=(shortname, port), daemon=True).start()
-
-        # Hide console window (Windows only)
-        if sys.platform == 'win32' and str_to_bool(app_database_data["settings"]["hide-console"]):
-            try:
-                import win32.lib.win32con as win32con
-                import win32gui
-
-                def get_windows():
-                    app_windows = []
-
-                    def winEnumHandler(hwnd, _ctx):
-                        if win32gui.IsWindowVisible(hwnd):
-                            n = win32gui.GetWindowText(hwnd)
-                            if n == "TinyRedirect - App Server":
-                                app_windows.append((n, hwnd))
-
-                    win32gui.EnumWindows(winEnumHandler, None)
-                    return app_windows
-
-                app_windows = get_windows()
-                for app_window in app_windows:
-                    win32gui.ShowWindow(app_window[1], win32con.SW_HIDE)
-            except ImportError:
-                print("Warning: pywin32 not available, cannot hide console window")
-
-        # Allow environment variable override for host (useful for Docker)
-        host = os.environ.get('TINYREDIRECT_HOST', app_database_data["settings"]["hostname"])
-        port = os.environ.get('TINYREDIRECT_PORT', app_database_data["settings"]["port"])
-
-        logger.info(f"Starting server on {host}:{port}")
-        app.run(
-            host=host,
-            port=port,
-            debug=str_to_bool(app_database_data["settings"]["bottle-debug"]),
-            reloader=str_to_bool(app_database_data["settings"]["bottle-reloader"]),
-            server=app_database_data["settings"]["bottle-engine"],
-        )
+    finally:
+        logger.info("TinyRedirect shutting down...")
+        logger.info("Cleaning up resources...")
+        stop_tray_icon()
+        logger.info("Application shutdown complete.")
+        print("[DEBUG] main: Application shutdown complete", file=sys.stderr)
 
 
 if __name__ == "__main__":
