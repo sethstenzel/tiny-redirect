@@ -199,8 +199,8 @@ def database_init(db_path="redirects.db"):
                 "hostname"	TEXT DEFAULT '127.0.0.1',
                 "port"	INTEGER DEFAULT 80,
                 "shortname"	TEXT DEFAULT 'r',
-                "bottle-debug"	TEXT DEFAULT 'True',
-                "bottle-reloader"	TEXT DEFAULT 'True',
+                "bottle-debug"	TEXT DEFAULT 'False',
+                "bottle-reloader"	TEXT DEFAULT 'False',
                 "bottle-engine"	TEXT DEFAULT 'wsgiref',
                 "theme"	TEXT DEFAULT 'Light',
                 "hide-console"	TEXT DEFAULT 'False'

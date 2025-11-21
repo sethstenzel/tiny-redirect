@@ -825,9 +825,14 @@ def main():
     try:
         print(f"[DEBUG] main: TinyRedirect starting (PID: {os.getpid()})", file=sys.stderr)
 
-        # Check for single instance BEFORE starting any threads or logging
-        # This must be done first to avoid race conditions
-        if sys.platform == 'win32':
+        # Check if we're in the reloader child process FIRST
+        # When reloader=True, Bottle spawns a child process with BOTTLE_CHILD env var
+        is_reloader_child = os.environ.get('BOTTLE_CHILD') == 'true'
+        print(f"[DEBUG] main: Reloader child process: {is_reloader_child}", file=sys.stderr)
+
+        # Check for single instance ONLY if not a reloader child
+        # The parent process holds the mutex, child processes skip the check
+        if sys.platform == 'win32' and not is_reloader_child:
             print("[DEBUG] main: Performing single instance check...", file=sys.stderr)
             is_single, mutex_handle = check_single_instance()
             if not is_single:
@@ -883,9 +888,7 @@ def main():
             logger.error("Expected database tables missing or damaged,\ndelete redirects.db and run again.")
             sys.exit(1)
 
-        # Check if we're in the reloader child process
-        # When reloader=True, Bottle spawns a child process with BOTTLE_CHILD env var
-        is_reloader_child = os.environ.get('BOTTLE_CHILD') == 'true'
+        # is_reloader_child was already checked at the start of main()
         logger.info(f"Reloader child process: {is_reloader_child}")
 
         # Check for --startup flag to suppress browser opening
@@ -931,35 +934,6 @@ def main():
                     Thread(target=open_webpage, args=(shortname, port)).start()
                 logger.info("Starting tray icon thread...")
                 Thread(target=create_tray_icon, args=(shortname, port), daemon=True).start()
-
-            # Hide console window (Windows only)
-            if sys.platform == 'win32' and str_to_bool(app_database_data["settings"]["hide-console"]):
-                logger.info("Attempting to hide console window...")
-                try:
-                    import win32.lib.win32con as win32con
-                    import win32gui
-
-                    def get_windows():
-                        app_windows = []
-
-                        def winEnumHandler(hwnd, _ctx):
-                            if win32gui.IsWindowVisible(hwnd):
-                                n = win32gui.GetWindowText(hwnd)
-                                if n == "TinyRedirect - App Server":
-                                    app_windows.append((n, hwnd))
-
-                        win32gui.EnumWindows(winEnumHandler, None)
-                        return app_windows
-
-                    app_windows = get_windows()
-                    logger.info(f"Found {len(app_windows)} matching windows to hide")
-                    for app_window in app_windows:
-                        logger.info(f"Hiding window: {app_window[0]}")
-                        win32gui.ShowWindow(app_window[1], win32con.SW_HIDE)
-                except ImportError as e:
-                    logger.warning(f"pywin32 not available, cannot hide console window: {e}")
-                except Exception as e:
-                    logger.error(f"Failed to hide console window: {e}")
 
             # Allow environment variable override for host (useful for Docker)
             host = os.environ.get('TINYREDIRECT_HOST', app_database_data["settings"]["hostname"])
