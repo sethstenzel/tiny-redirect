@@ -25,7 +25,7 @@ classifiers = [
 ]
 dependencies = [
     "bottle>=0.12.21",
-    "pywin32>=304",
+    "pywin32>=304; sys_platform == 'win32'",
     "pystray>=0.19.5",
     "pillow>=10.0.0",
     "requests>=2.32.5",
